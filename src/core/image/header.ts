@@ -1,0 +1,105 @@
+// 140-bit self-describing metadata header. Field layout (read MSB-first, in order):
+//
+//   magic        32 bits  0x41554456 ("AUDV")
+//   version       4 bits
+//   reserved      2 bits  bit 0 = precision flag, bit 1 spare (zero)
+//   sampleRate   24 bits
+//   fftSize      11 bits  (widened from the spec's 10 bits: 1024 needs 11 bits; max 2047)
+//   hopSize      11 bits  (widened to match; max 2047)
+//   sampleCount  32 bits
+//   channels      8 bits
+//   crc16        16 bits  CRC-16/CCITT-FALSE over the preceding 124 bits
+//
+// Total: 140 bits. The 2 extra bits for fft/hop are borrowed from the spec's 4 reserved bits,
+// keeping the structure at exactly 140 bits (70 squares x 2 rows). The CRC covers everything
+// before it. FFT sizes are powers of two; 256/512/1024 all fit.
+
+import { MAGIC, type Precision, type WavegramHeader } from '../params'
+import { crc16 } from './crc16'
+
+export const HEADER_BITS = 140
+const PAYLOAD_BITS = 124 // everything before the 16-bit CRC
+
+// Field bit offsets (start positions), in order.
+const OFF = {
+  magic: 0, // 32
+  version: 32, // 4
+  precision: 36, // 1
+  // reserved spare: 37 (1)
+  sampleRate: 38, // 24
+  fftSize: 62, // 11
+  hopSize: 73, // 11
+  sampleCount: 84, // 32
+  channels: 116, // 8
+  crc: PAYLOAD_BITS, // 16
+} as const
+
+export interface DecodedHeader {
+  magicValid: boolean
+  crcValid: boolean
+  /** Parsed fields. Present whenever magic is valid (even if CRC fails). */
+  header: WavegramHeader | null
+}
+
+/** Append `width` bits of `value` (MSB-first) to `bits`. */
+function pushBits(bits: number[], value: number, width: number): void {
+  for (let i = width - 1; i >= 0; i--) {
+    bits.push((value >>> i) & 1)
+  }
+}
+
+/** Read `width` bits (MSB-first) starting at `offset`. Returns an unsigned int. */
+function readBits(bits: Uint8Array, offset: number, width: number): number {
+  let value = 0
+  for (let i = 0; i < width; i++) {
+    value = value * 2 + (bits[offset + i] & 1)
+  }
+  return value >>> 0
+}
+
+/** Encode a header into a 140-element bit array (each element 0 or 1). */
+export function packHeader(h: WavegramHeader): Uint8Array {
+  const bits: number[] = []
+  pushBits(bits, MAGIC >>> 0, 32)
+  pushBits(bits, h.version, 4)
+  pushBits(bits, h.precision, 1) // reserved bit 0
+  pushBits(bits, 0, 1) // reserved bit 1 (spare)
+  pushBits(bits, h.sampleRate, 24)
+  pushBits(bits, h.fftSize, 11)
+  pushBits(bits, h.hopSize, 11)
+  pushBits(bits, h.sampleCount >>> 0, 32)
+  pushBits(bits, h.channels, 8)
+
+  const crc = crc16(Uint8Array.from(bits))
+  pushBits(bits, crc, 16)
+
+  return Uint8Array.from(bits)
+}
+
+/** Decode and validate a 140-bit header. */
+export function unpackHeader(bits: Uint8Array): DecodedHeader {
+  const magic = readBits(bits, OFF.magic, 32)
+  const magicValid = magic === (MAGIC >>> 0)
+
+  const storedCrc = readBits(bits, OFF.crc, 16)
+  const computedCrc = crc16(bits.subarray(0, PAYLOAD_BITS))
+  const crcValid = storedCrc === computedCrc
+
+  if (!magicValid) {
+    return { magicValid, crcValid, header: null }
+  }
+
+  return {
+    magicValid,
+    crcValid,
+    header: {
+      version: readBits(bits, OFF.version, 4),
+      precision: readBits(bits, OFF.precision, 1) as Precision,
+      sampleRate: readBits(bits, OFF.sampleRate, 24),
+      fftSize: readBits(bits, OFF.fftSize, 11),
+      hopSize: readBits(bits, OFF.hopSize, 11),
+      sampleCount: readBits(bits, OFF.sampleCount, 32),
+      channels: readBits(bits, OFF.channels, 8),
+    },
+  }
+}
