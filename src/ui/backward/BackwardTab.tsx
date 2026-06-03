@@ -1,6 +1,8 @@
 // Backward tab: Wavegram PNG -> reconstructed WAV (Griffin-Lim in a worker).
 
-import { useCallback, useMemo, useState } from 'react'
+import { Loader2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -43,7 +45,13 @@ export function BackwardTab() {
   const [image, setImage] = useState<LoadedImage | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [preset, setPreset] = useState<QualityPreset>('default')
-  const { state, run, reset } = useReconstruct()
+  const { state, run, reset, cancel } = useReconstruct()
+  const inputRef = useRef<HTMLInputElement | null>(null)
+
+  // Surface reconstruction failures as a toast in addition to the inline alert.
+  useEffect(() => {
+    if (state.status === 'error') toast.error(`Reconstruction failed: ${state.message}`)
+  }, [state])
 
   const onFile = useCallback(
     async (file: File | undefined) => {
@@ -97,6 +105,19 @@ export function BackwardTab() {
     [image],
   )
 
+  const onDownload = useCallback(() => {
+    if (state.status !== 'done') return
+    downloadBlob(state.wav, `${outName}.reconstructed.wav`)
+    toast.success('WAV downloaded')
+  }, [state, outName])
+
+  const onReset = useCallback(() => {
+    cancel()
+    setImage(null)
+    setLoadError(null)
+    if (inputRef.current) inputRef.current.value = ''
+  }, [cancel])
+
   return (
     <div className="flex flex-col gap-6">
       <Card>
@@ -105,6 +126,7 @@ export function BackwardTab() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <input
+            ref={inputRef}
             type="file"
             accept="image/png"
             onChange={(e) => onFile(e.target.files?.[0])}
@@ -115,6 +137,13 @@ export function BackwardTab() {
               <AlertTitle>Could not read image</AlertTitle>
               <AlertDescription>{loadError}</AlertDescription>
             </Alert>
+          )}
+          {(image || loadError) && (
+            <div>
+              <Button variant="ghost" size="sm" onClick={onReset}>
+                Start over
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -137,15 +166,18 @@ export function BackwardTab() {
               <Alert variant="destructive">
                 <AlertTitle>Not a Wavegram image</AlertTitle>
                 <AlertDescription>
-                  The metadata header is missing or unreadable.
+                  No Wavegram metadata header was found. Make sure you're loading a PNG
+                  produced by the Audio → Image tab.
                 </AlertDescription>
               </Alert>
             )}
             {image.magicValid && !image.crcValid && (
               <Alert variant="destructive">
-                <AlertTitle>Corrupt header</AlertTitle>
+                <AlertTitle>Header checksum failed</AlertTitle>
                 <AlertDescription>
-                  The CRC check failed — the image has been altered or damaged.
+                  The CRC check failed — this PNG was most likely re-compressed (e.g.
+                  saved by another app or messaging service), edited, or resized.
+                  Reconstruction needs the original, unmodified PNG.
                 </AlertDescription>
               </Alert>
             )}
@@ -178,7 +210,7 @@ export function BackwardTab() {
             <label className="flex flex-col gap-2 text-sm">
               <span className="text-muted-foreground">Griffin-Lim quality</span>
               <Select value={preset} onValueChange={(v) => setPreset(v as QualityPreset)}>
-                <SelectTrigger className="w-64">
+                <SelectTrigger className="w-full sm:w-64">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -191,15 +223,20 @@ export function BackwardTab() {
               </Select>
             </label>
 
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <Button onClick={onReconstruct} disabled={state.status === 'running'}>
+                {state.status === 'running' && (
+                  <Loader2 className="size-4 animate-spin" />
+                )}
                 {state.status === 'running' ? 'Reconstructing…' : 'Reconstruct WAV'}
               </Button>
+              {state.status === 'running' && (
+                <Button variant="outline" onClick={cancel}>
+                  Cancel
+                </Button>
+              )}
               {state.status === 'done' && (
-                <Button
-                  variant="secondary"
-                  onClick={() => downloadBlob(state.wav, `${outName}.reconstructed.wav`)}
-                >
+                <Button variant="secondary" onClick={onDownload}>
                   Download WAV
                 </Button>
               )}

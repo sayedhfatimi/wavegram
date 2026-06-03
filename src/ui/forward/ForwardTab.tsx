@@ -1,6 +1,8 @@
 // Forward tab: audio file -> Wavegram PNG.
 
+import { Loader2 } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -29,9 +31,11 @@ export function ForwardTab() {
   const [fftSize, setFftSize] = useState<number>(DEFAULTS.fftSize)
   const [precision, setPrecision] = useState<Precision>(DEFAULTS.precision)
   const [pngBlob, setPngBlob] = useState<Blob | null>(null)
-  const [busy, setBusy] = useState(false)
+  const [decoding, setDecoding] = useState(false)
+  const [encoding, setEncoding] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
 
   const hopSize = fftSize / 2
 
@@ -39,7 +43,7 @@ export function ForwardTab() {
     if (!file) return
     setError(null)
     setPngBlob(null)
-    setBusy(true)
+    setDecoding(true)
     try {
       const decoded = await decodeAudioFile(file)
       setAudio(decoded)
@@ -48,14 +52,14 @@ export function ForwardTab() {
       setError(e instanceof Error ? e.message : String(e))
       setAudio(null)
     } finally {
-      setBusy(false)
+      setDecoding(false)
     }
   }, [])
 
   const onProcess = useCallback(async () => {
     if (!audio) return
     setError(null)
-    setBusy(true)
+    setEncoding(true)
     try {
       const region = encodeToImage(
         audio.samples,
@@ -76,11 +80,28 @@ export function ForwardTab() {
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
-      setBusy(false)
+      setEncoding(false)
     }
   }, [audio, fftSize, hopSize, precision])
 
+  const onReset = useCallback(() => {
+    setAudio(null)
+    setFileName('')
+    setPngBlob(null)
+    setError(null)
+    setDecoding(false)
+    setEncoding(false)
+    if (inputRef.current) inputRef.current.value = ''
+  }, [])
+
   const outName = fileName.replace(/\.[^.]+$/, '') || 'wavegram'
+  const hasState = !!audio || !!pngBlob || !!error
+
+  const onDownload = useCallback(() => {
+    if (!pngBlob) return
+    downloadBlob(pngBlob, `${outName}.wavegram.png`)
+    toast.success('PNG downloaded')
+  }, [pngBlob, outName])
 
   return (
     <div className="flex flex-col gap-6">
@@ -90,12 +111,19 @@ export function ForwardTab() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <input
+            ref={inputRef}
             type="file"
             accept="audio/*"
             onChange={(e) => onFile(e.target.files?.[0])}
             className="block w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-4 file:py-2 file:text-primary-foreground hover:file:opacity-90"
           />
-          {audio && (
+          {decoding && (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" />
+              Decoding audio…
+            </p>
+          )}
+          {audio && !decoding && (
             <p className="text-sm text-muted-foreground">
               {fileName} — {audio.durationSec.toFixed(1)}s, {audio.sampleRate} Hz mono
             </p>
@@ -119,7 +147,7 @@ export function ForwardTab() {
           <label className="flex flex-col gap-2 text-sm">
             <span className="text-muted-foreground">FFT window size</span>
             <Select value={String(fftSize)} onValueChange={(v) => setFftSize(Number(v))}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-full sm:w-40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -141,7 +169,7 @@ export function ForwardTab() {
               value={String(precision)}
               onValueChange={(v) => setPrecision(Number(v) as Precision)}
             >
-              <SelectTrigger className="w-72">
+              <SelectTrigger className="w-full sm:w-72">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -156,16 +184,19 @@ export function ForwardTab() {
         </CardContent>
       </Card>
 
-      <div className="flex items-center gap-4">
-        <Button onClick={onProcess} disabled={!audio || busy}>
-          {busy ? 'Working…' : 'Generate Wavegram'}
+      <div className="flex flex-wrap items-center gap-4">
+        <Button onClick={onProcess} disabled={!audio || decoding || encoding}>
+          {encoding && <Loader2 className="size-4 animate-spin" />}
+          {encoding ? 'Generating…' : 'Generate Wavegram'}
         </Button>
         {pngBlob && (
-          <Button
-            variant="secondary"
-            onClick={() => downloadBlob(pngBlob, `${outName}.wavegram.png`)}
-          >
+          <Button variant="secondary" onClick={onDownload}>
             Download PNG
+          </Button>
+        )}
+        {hasState && (
+          <Button variant="ghost" onClick={onReset} disabled={decoding || encoding}>
+            Start over
           </Button>
         )}
       </div>
