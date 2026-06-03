@@ -87,7 +87,7 @@ console.log('OK: forward produced PNG', statSync(pngPath).size, 'bytes')
 void dlForward
 
 // --- Backward tab: feed the PNG back in, reconstruct ---
-await page.getByRole('tab', { name: 'Image → Audio' }).click()
+await page.getByRole('tab', { name: 'Image ➔ Audio' }).click()
 await page.locator('input[type="file"][accept="image/png"]').setInputFiles(pngPath)
 
 await page.getByText('Magic ✓').waitFor({ timeout: 5000 })
