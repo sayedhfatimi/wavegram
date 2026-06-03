@@ -55,6 +55,53 @@ export function resampleLinear(
   return out
 }
 
+/**
+ * Windowed-sinc (Blackman) resampler with an anti-aliasing low-pass. When
+ * downsampling, the sinc cutoff drops to the target Nyquist so high frequencies
+ * are attenuated before sampling instead of folding back as aliases. Higher
+ * quality than linear interpolation for music and wideband audio.
+ */
+export function resampleSinc(
+  samples: Float32Array,
+  fromRate: number,
+  toRate: number,
+  lobes = 8,
+): Float32Array {
+  if (fromRate === toRate) return samples.slice()
+  const ratio = fromRate / toRate
+  const outLen = Math.round(samples.length * (toRate / fromRate))
+  const out = new Float32Array(outLen)
+  const last = samples.length - 1
+
+  // Cutoff in cycles per source sample: 0.5 (source Nyquist) when upsampling,
+  // lowered to the target Nyquist when downsampling.
+  const fc = 0.5 * Math.min(1, toRate / fromRate)
+  // Kernel half-width in source samples (more lobes -> sharper transition).
+  const halfWidth = lobes / (2 * fc)
+
+  for (let i = 0; i < outLen; i++) {
+    const t = i * ratio
+    const nStart = Math.ceil(t - halfWidth)
+    const nEnd = Math.floor(t + halfWidth)
+    let acc = 0
+    let wsum = 0
+    for (let n = nStart; n <= nEnd; n++) {
+      if (n < 0 || n > last) continue
+      const x = n - t
+      const sincArg = 2 * fc * x
+      const sinc = sincArg === 0 ? 1 : Math.sin(Math.PI * sincArg) / (Math.PI * sincArg)
+      const u = (x + halfWidth) / (2 * halfWidth)
+      const win =
+        0.42 - 0.5 * Math.cos(2 * Math.PI * u) + 0.08 * Math.cos(4 * Math.PI * u)
+      const w = sinc * win
+      acc += samples[n] * w
+      wsum += w
+    }
+    out[i] = wsum > 0 ? acc / wsum : 0
+  }
+  return out
+}
+
 /** Truncate to at most `maxSec` of audio. Reports whether truncation occurred. */
 export function capSamples(
   samples: Float32Array,
@@ -91,7 +138,7 @@ export async function decodeAudioFile(
       channels.push(buffer.getChannelData(ch))
     }
     let mono = mixToMono(channels)
-    mono = resampleLinear(mono, buffer.sampleRate, targetRate)
+    mono = resampleSinc(mono, buffer.sampleRate, targetRate)
     mono = peakNormalize(mono)
     const { samples, capped } = capSamples(mono, targetRate, maxSec)
     return {
