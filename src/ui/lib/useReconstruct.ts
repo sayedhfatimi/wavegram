@@ -9,7 +9,7 @@ import type {
 export type ReconstructState =
   | { status: 'idle' }
   | { status: 'running'; progress: number }
-  | { status: 'done'; wav: Blob }
+  | { status: 'done'; wav: Blob; error: number }
   | { status: 'error'; message: string }
 
 export function useReconstruct() {
@@ -50,7 +50,11 @@ export function useReconstruct() {
       if (msg.type === 'progress') {
         setState({ status: 'running', progress: msg.done / msg.total })
       } else if (msg.type === 'done') {
-        setState({ status: 'done', wav: new Blob([msg.wav], { type: 'audio/wav' }) })
+        setState({
+          status: 'done',
+          wav: new Blob([msg.wav], { type: 'audio/wav' }),
+          error: msg.error,
+        })
         worker.terminate()
         workerRef.current = null
       } else {

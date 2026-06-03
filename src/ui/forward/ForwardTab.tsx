@@ -1,7 +1,7 @@
 // Forward tab: audio file -> Wavegram PNG.
 
 import { Loader2 } from 'lucide-react'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -14,10 +14,15 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { type DecodedAudio, decodeAudioFile } from '@/core/audio/decode'
+import { stftMagnitude } from '@/core/audio/stft'
+import { encodeWav } from '@/core/audio/wav'
 import { encodeToImage } from '@/core/forward'
 import { imageDataToPngBlob } from '@/core/image/png'
+import { forwardLogScale } from '@/core/log'
 import { DEFAULTS, type Precision } from '@/core/params'
+import { AudioPlayer } from '@/ui/AudioPlayer'
 import { downloadBlob, regionToImageData } from '@/ui/lib/browser'
+import { magnitudeToFalseColorRegion } from '@/ui/lib/spectrogramView'
 
 const FFT_OPTIONS = [256, 512, 1024, 2048]
 const PRECISION_OPTIONS: { value: Precision; label: string }[] = [
@@ -25,12 +30,21 @@ const PRECISION_OPTIONS: { value: Precision; label: string }[] = [
   { value: 0, label: '8-bit (grayscale) — spec-literal' },
 ]
 
+type PreviewMode = 'encoded' | 'falsecolor'
+
+interface Views {
+  encoded: ImageData
+  falseColor: ImageData
+}
+
 export function ForwardTab() {
   const [audio, setAudio] = useState<DecodedAudio | null>(null)
   const [fileName, setFileName] = useState<string>('')
   const [fftSize, setFftSize] = useState<number>(DEFAULTS.fftSize)
   const [precision, setPrecision] = useState<Precision>(DEFAULTS.precision)
   const [pngBlob, setPngBlob] = useState<Blob | null>(null)
+  const [views, setViews] = useState<Views | null>(null)
+  const [previewMode, setPreviewMode] = useState<PreviewMode>('falsecolor')
   const [decoding, setDecoding] = useState(false)
   const [encoding, setEncoding] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -39,10 +53,19 @@ export function ForwardTab() {
 
   const hopSize = fftSize / 2
 
+  const originalAudio = useMemo(
+    () =>
+      audio
+        ? new Blob([encodeWav(audio.samples, audio.sampleRate)], { type: 'audio/wav' })
+        : null,
+    [audio],
+  )
+
   const onFile = useCallback(async (file: File | undefined) => {
     if (!file) return
     setError(null)
     setPngBlob(null)
+    setViews(null)
     setDecoding(true)
     try {
       const decoded = await decodeAudioFile(file)
@@ -69,14 +92,12 @@ export function ForwardTab() {
         hopSize,
         precision,
       )
-      const imageData = regionToImageData(region)
-      const canvas = canvasRef.current
-      if (canvas) {
-        canvas.width = imageData.width
-        canvas.height = imageData.height
-        canvas.getContext('2d')?.putImageData(imageData, 0, 0)
-      }
-      setPngBlob(await imageDataToPngBlob(imageData))
+      const encoded = regionToImageData(region)
+      // recompute the [0,1] magnitude matrix for a legible false-color preview
+      const scaled = forwardLogScale(stftMagnitude(audio.samples, fftSize, hopSize))
+      const falseColor = regionToImageData(magnitudeToFalseColorRegion(scaled))
+      setViews({ encoded, falseColor })
+      setPngBlob(await imageDataToPngBlob(encoded))
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -84,18 +105,29 @@ export function ForwardTab() {
     }
   }, [audio, fftSize, hopSize, precision])
 
+  // Draw the selected preview onto the canvas whenever it or the view changes.
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas || !views) return
+    const img = previewMode === 'encoded' ? views.encoded : views.falseColor
+    canvas.width = img.width
+    canvas.height = img.height
+    canvas.getContext('2d')?.putImageData(img, 0, 0)
+  }, [views, previewMode])
+
+  const outName = fileName.replace(/\.[^.]+$/, '') || 'wavegram'
+  const hasState = !!audio || !!pngBlob || !!error
+
   const onReset = useCallback(() => {
     setAudio(null)
     setFileName('')
     setPngBlob(null)
+    setViews(null)
     setError(null)
     setDecoding(false)
     setEncoding(false)
     if (inputRef.current) inputRef.current.value = ''
   }, [])
-
-  const outName = fileName.replace(/\.[^.]+$/, '') || 'wavegram'
-  const hasState = !!audio || !!pngBlob || !!error
 
   const onDownload = useCallback(() => {
     if (!pngBlob) return
@@ -127,6 +159,9 @@ export function ForwardTab() {
             <p className="text-sm text-muted-foreground">
               {fileName} — {audio.durationSec.toFixed(1)}s, {audio.sampleRate} Hz mono
             </p>
+          )}
+          {originalAudio && !decoding && (
+            <AudioPlayer blob={originalAudio} label="Original (normalized mono input)" />
           )}
           {audio?.capped && (
             <Alert variant="destructive">
@@ -208,15 +243,36 @@ export function ForwardTab() {
         </Alert>
       )}
 
-      <Card className={pngBlob ? '' : 'hidden'}>
+      <Card className={views ? '' : 'hidden'}>
         <CardHeader>
           <CardTitle>Preview</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-3">
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant={previewMode === 'falsecolor' ? 'default' : 'outline'}
+              onClick={() => setPreviewMode('falsecolor')}
+            >
+              False color
+            </Button>
+            <Button
+              size="sm"
+              variant={previewMode === 'encoded' ? 'default' : 'outline'}
+              onClick={() => setPreviewMode('encoded')}
+            >
+              Encoded image
+            </Button>
+          </div>
           <canvas
             ref={canvasRef}
             className="max-w-full border bg-black [image-rendering:pixelated]"
           />
+          <p className="text-xs text-muted-foreground">
+            {previewMode === 'falsecolor'
+              ? 'A readable viridis rendering of the magnitude spectrogram. The downloaded PNG is the encoded image.'
+              : 'The literal PNG that gets downloaded — magnitude packed across colour channels.'}
+          </p>
         </CardContent>
       </Card>
     </div>

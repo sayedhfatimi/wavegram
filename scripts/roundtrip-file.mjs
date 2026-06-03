@@ -21,6 +21,7 @@ import { stftMagnitude } from '../src/core/audio/stft.ts'
 import { encodeWav } from '../src/core/audio/wav.ts'
 import { extractMagnitude, readMetadata } from '../src/core/backward.ts'
 import { encodeToImage } from '../src/core/forward.ts'
+import { spectralError } from '../src/core/metrics.ts'
 import { DEFAULTS } from '../src/core/params.ts'
 
 const input = process.argv[2]
@@ -91,26 +92,6 @@ const reconWav = encodeWav(reconNorm, SR)
 writeFileSync(join(outDir, `${name}.reconstructed.wav`), Buffer.from(reconWav))
 
 // 7. Spectral-convergence metric (how close the reconstruction's magnitude is to the target).
-function spectralError(a, b) {
-  const norm = (m) => {
-    let mx = 0
-    for (const f of m) for (const v of f) if (v > mx) mx = v
-    const inv = mx > 0 ? 1 / mx : 0
-    return m.map((f) => f.map((v) => v * inv))
-  }
-  const na = norm(a),
-    nb = norm(b)
-  let num = 0,
-    den = 0
-  const frames = Math.min(na.length, nb.length)
-  for (let f = 0; f < frames; f++)
-    for (let k = 0; k < na[f].length; k++) {
-      const d = nb[f][k] - na[f][k]
-      num += d * d
-      den += na[f][k] * na[f][k]
-    }
-  return Math.sqrt(num / den)
-}
 const err = spectralError(targetMag, stftMagnitude(recon, FFT, HOP))
 console.log(
   `\nSpectral convergence error: ${(err * 100).toFixed(2)}%  (lower = closer; ~0 is perfect magnitude match)`,

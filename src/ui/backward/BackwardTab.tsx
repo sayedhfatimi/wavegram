@@ -22,6 +22,7 @@ import {
   type QualityPreset,
   type WavegramHeader,
 } from '@/core/params'
+import { AudioPlayer } from '@/ui/AudioPlayer'
 import { downloadBlob, imageDataToRegion } from '@/ui/lib/browser'
 import { useReconstruct } from '@/ui/lib/useReconstruct'
 
@@ -244,6 +245,20 @@ export function BackwardTab() {
 
             {state.status === 'running' && (
               <Progress value={Math.round(state.progress * 100)} />
+            )}
+            {state.status === 'done' && (
+              <div className="flex flex-col gap-3">
+                <p className="text-sm text-muted-foreground">
+                  Spectral convergence error:{' '}
+                  <span className="font-mono text-foreground">
+                    {(state.error * 100).toFixed(2)}%
+                  </span>{' '}
+                  <span className="text-xs">
+                    (lower is closer; phase is recovered, so it is never exactly 0)
+                  </span>
+                </p>
+                <AudioPlayer blob={state.wav} label="Reconstructed audio" />
+              </div>
             )}
             {state.status === 'error' && (
               <Alert variant="destructive">
