@@ -6,8 +6,9 @@ import { packSpectrogram, unpackSpectrogram } from './spectrogram'
 import { MIN_STRIP_WIDTH, STRIP_HEIGHT_PX } from './squares'
 
 const header: WavegramHeader = {
-  version: 1,
+  version: 2,
   precision: 1,
+  hasPhase: false,
   sampleRate: 16000,
   fftSize: 8, // tiny: 5 bins
   hopSize: 4,

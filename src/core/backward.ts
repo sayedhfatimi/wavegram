@@ -7,7 +7,7 @@
 import { numFrames } from './audio/stft'
 import { readHeaderFromImage, readRegionFromImage } from './image/codec'
 import { type DecodedHeader, unpackHeader } from './image/header'
-import { unpackSpectrogram } from './image/spectrogram'
+import { unpackPhase, unpackSpectrogram } from './image/spectrogram'
 import { inverseLogScale } from './log'
 import { freqBins, type WavegramHeader } from './params'
 
@@ -33,4 +33,26 @@ export function extractMagnitude(
   const region = readRegionFromImage(rgba, width, frames, bins)
   const values = unpackSpectrogram(region, frames, bins, header.precision)
   return inverseLogScale(values)
+}
+
+/**
+ * Recover the stored per-bin phase seed from a decoded image, or null when the header
+ * has no phase (v1 images or 8-bit precision). Used to seed Griffin-Lim.
+ */
+export function extractPhase(
+  rgba: Uint8ClampedArray,
+  width: number,
+  height: number,
+  header: WavegramHeader,
+): Float32Array[] | null {
+  if (!header.hasPhase) return null
+  const bins = freqBins(header.fftSize)
+  if (height - 16 !== bins) {
+    throw new Error(
+      `Image height ${height} is inconsistent with FFT size ${header.fftSize} (expected ${bins + 16}px).`,
+    )
+  }
+  const frames = numFrames(header.sampleCount, header.fftSize, header.hopSize)
+  const region = readRegionFromImage(rgba, width, frames, bins)
+  return unpackPhase(region, frames, bins)
 }

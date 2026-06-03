@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { packSpectrogram, unpackSpectrogram } from './spectrogram'
+import { packSpectrogram, unpackPhase, unpackSpectrogram } from './spectrogram'
 
 // values[frame][bin], all frames have the same bin count
 const values = [
@@ -51,6 +51,32 @@ describe('8-bit grayscale precision', () => {
         expect(out[f][k]).toBeCloseTo(values[f][k], 2)
       }
     }
+  })
+})
+
+describe('phase storage (16-bit B channel)', () => {
+  it('round-trips per-bin phase within 8-bit quantization', () => {
+    const values = [Float32Array.from([0.5, 0.5]), Float32Array.from([0.3, 0.9])]
+    const phase = [
+      Float32Array.from([Math.PI / 2, -Math.PI / 3]),
+      Float32Array.from([0, Math.PI]),
+    ]
+    const { rgba, width, height } = packSpectrogram(values, 1, phase)
+    const out = unpackPhase(rgba, width, height)
+    for (let f = 0; f < phase.length; f++) {
+      for (let k = 0; k < phase[f].length; k++) {
+        expect(out[f][k]).toBeCloseTo(phase[f][k], 1)
+      }
+    }
+  })
+
+  it('still recovers magnitude when phase is also stored', () => {
+    const values = [Float32Array.from([0.25, 0.75])]
+    const phase = [Float32Array.from([1.0, -1.0])]
+    const { rgba, width, height } = packSpectrogram(values, 1, phase)
+    const mag = unpackSpectrogram(rgba, width, height, 1)
+    expect(mag[0][0]).toBeCloseTo(0.25, 4)
+    expect(mag[0][1]).toBeCloseTo(0.75, 4)
   })
 })
 

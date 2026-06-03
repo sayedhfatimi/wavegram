@@ -15,7 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { extractMagnitude, readMetadata } from '@/core/backward'
+import { Slider } from '@/components/ui/slider'
+import { extractMagnitude, extractPhase, readMetadata } from '@/core/backward'
 import { fileToImageData } from '@/core/image/png'
 import {
   GRIFFIN_LIM_PRESETS,
@@ -36,16 +37,25 @@ interface LoadedImage {
   fileName: string
 }
 
+type QualityMode = QualityPreset | 'custom'
+
 const PRESET_LABELS: Record<QualityPreset, string> = {
-  fast: `Fast (${GRIFFIN_LIM_PRESETS.fast} iterations)`,
-  default: `Default (${GRIFFIN_LIM_PRESETS.default} iterations)`,
-  quality: `Quality (${GRIFFIN_LIM_PRESETS.quality} iterations)`,
+  fast: `Fast (${GRIFFIN_LIM_PRESETS.fast.iterations} iterations)`,
+  default: `Default (${GRIFFIN_LIM_PRESETS.default.iterations} iterations)`,
+  quality: `Quality (${GRIFFIN_LIM_PRESETS.quality.iterations} iterations)`,
+  accelerated: `Accelerated (fast Griffin-Lim, ${GRIFFIN_LIM_PRESETS.accelerated.iterations} iterations)`,
+}
+
+const MODE_LABELS: Record<QualityMode, string> = {
+  ...PRESET_LABELS,
+  custom: 'Custom…',
 }
 
 export function BackwardTab() {
   const [image, setImage] = useState<LoadedImage | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [preset, setPreset] = useState<QualityPreset>('default')
+  const [mode, setMode] = useState<QualityMode>('default')
+  const [customIters, setCustomIters] = useState(50)
   const { state, run, reset, cancel } = useReconstruct()
   const inputRef = useRef<HTMLInputElement | null>(null)
 
@@ -84,21 +94,29 @@ export function BackwardTab() {
 
   const onReconstruct = useCallback(() => {
     if (!image?.header) return
+    const settings =
+      mode === 'custom'
+        ? { iterations: customIters, momentum: 0 }
+        : GRIFFIN_LIM_PRESETS[mode]
     const magnitude = extractMagnitude(
       image.rgba,
       image.width,
       image.height,
       image.header,
     )
+    const initialPhase =
+      extractPhase(image.rgba, image.width, image.height, image.header) ?? undefined
     run({
       magnitude,
       fftSize: image.header.fftSize,
       hopSize: image.header.hopSize,
-      iterations: GRIFFIN_LIM_PRESETS[preset],
+      iterations: settings.iterations,
+      momentum: settings.momentum,
       sampleCount: image.header.sampleCount,
       sampleRate: image.header.sampleRate,
+      initialPhase,
     })
-  }, [image, preset, run])
+  }, [image, mode, customIters, run])
 
   const outName = useMemo(
     () =>
@@ -196,6 +214,7 @@ export function BackwardTab() {
                   label="Precision"
                   value={image.header.precision === 1 ? '16-bit RGB' : '8-bit gray'}
                 />
+                <Meta label="Phase seed" value={image.header.hasPhase ? 'Yes' : 'No'} />
               </dl>
             )}
           </CardContent>
@@ -210,19 +229,35 @@ export function BackwardTab() {
           <CardContent className="flex flex-col gap-4">
             <label className="flex flex-col gap-2 text-sm">
               <span className="text-muted-foreground">Griffin-Lim quality</span>
-              <Select value={preset} onValueChange={(v) => setPreset(v as QualityPreset)}>
-                <SelectTrigger className="w-full sm:w-64">
+              <Select value={mode} onValueChange={(v) => setMode(v as QualityMode)}>
+                <SelectTrigger className="w-full sm:w-80">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(Object.keys(PRESET_LABELS) as QualityPreset[]).map((k) => (
+                  {(Object.keys(MODE_LABELS) as QualityMode[]).map((k) => (
                     <SelectItem key={k} value={k}>
-                      {PRESET_LABELS[k]}
+                      {MODE_LABELS[k]}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </label>
+
+            {mode === 'custom' && (
+              <label className="flex flex-col gap-2 text-sm">
+                <span className="text-muted-foreground">
+                  Iterations: <span className="font-mono">{customIters}</span>
+                </span>
+                <Slider
+                  className="max-w-80"
+                  min={5}
+                  max={200}
+                  step={1}
+                  value={[customIters]}
+                  onValueChange={([v]) => setCustomIters(v)}
+                />
+              </label>
+            )}
 
             <div className="flex flex-wrap items-center gap-4">
               <Button onClick={onReconstruct} disabled={state.status === 'running'}>

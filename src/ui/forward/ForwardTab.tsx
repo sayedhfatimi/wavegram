@@ -42,6 +42,7 @@ export function ForwardTab() {
   const [fileName, setFileName] = useState<string>('')
   const [fftSize, setFftSize] = useState<number>(DEFAULTS.fftSize)
   const [precision, setPrecision] = useState<Precision>(DEFAULTS.precision)
+  const [storePhase, setStorePhase] = useState(true)
   const [pngBlob, setPngBlob] = useState<Blob | null>(null)
   const [views, setViews] = useState<Views | null>(null)
   const [previewMode, setPreviewMode] = useState<PreviewMode>('falsecolor')
@@ -91,6 +92,7 @@ export function ForwardTab() {
         fftSize,
         hopSize,
         precision,
+        precision === 1 && storePhase,
       )
       const encoded = regionToImageData(region)
       // recompute the [0,1] magnitude matrix for a legible false-color preview
@@ -103,7 +105,7 @@ export function ForwardTab() {
     } finally {
       setEncoding(false)
     }
-  }, [audio, fftSize, hopSize, precision])
+  }, [audio, fftSize, hopSize, precision, storePhase])
 
   // Draw the selected preview onto the canvas whenever it or the view changes.
   useEffect(() => {
@@ -215,6 +217,23 @@ export function ForwardTab() {
                 ))}
               </SelectContent>
             </Select>
+          </label>
+          <label className="flex max-w-72 flex-col gap-2 text-sm">
+            <span className="text-muted-foreground">Phase seed</span>
+            <span className="flex h-9 items-center gap-2">
+              <input
+                type="checkbox"
+                className="size-4"
+                checked={precision === 1 && storePhase}
+                disabled={precision !== 1}
+                onChange={(e) => setStorePhase(e.target.checked)}
+              />
+              <span className={precision !== 1 ? 'text-muted-foreground' : ''}>
+                {precision === 1
+                  ? 'Store phase for better reconstruction'
+                  : 'Requires 16-bit precision'}
+              </span>
+            </span>
           </label>
         </CardContent>
       </Card>

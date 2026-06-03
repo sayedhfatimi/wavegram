@@ -18,6 +18,8 @@ export interface ReconstructRequest {
   iterations: number
   sampleCount: number
   sampleRate: number
+  momentum?: number
+  initialPhase?: Float32Array[]
 }
 
 export type ReconstructResponse =
@@ -38,6 +40,8 @@ self.onmessage = (e: MessageEvent<ReconstructRequest>) => {
         const msg: ReconstructResponse = { type: 'progress', done, total }
         self.postMessage(msg)
       },
+      req.momentum ?? 0,
+      req.initialPhase,
     )
     // spectral-convergence error between the target magnitude and the
     // reconstruction's magnitude — a fidelity readout for the UI.

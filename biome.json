@@ -42,7 +42,7 @@
         "noLabelWithoutControl": {
           "level": "error",
           "options": {
-            "inputComponents": ["Select"]
+            "inputComponents": ["Select", "Slider"]
           }
         }
       },

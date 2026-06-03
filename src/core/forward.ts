@@ -2,9 +2,12 @@
 //
 //   STFT magnitude -> log scaling -> pack pixels -> build header -> compose image
 //
+// With `storePhase` (16-bit precision only) the per-bin STFT phase is quantized into the
+// pixel B channel as a Griffin-Lim seed, recorded via the header's hasPhase flag.
+//
 // Pure (no DOM): returns a PixelRegion the UI turns into a PNG via canvas.
 
-import { stftMagnitude } from './audio/stft'
+import { stft } from './audio/stft'
 import { composeImage } from './image/codec'
 import { packHeader } from './image/header'
 import { type PixelRegion, packSpectrogram } from './image/spectrogram'
@@ -19,14 +22,33 @@ export function encodeToImage(
   fftSize: number,
   hopSize: number,
   precision: Precision,
+  storePhase = false,
 ): PixelRegion {
-  const mag = stftMagnitude(samples, fftSize, hopSize)
+  const spec = stft(samples, fftSize, hopSize)
+  const mag = spec.real.map((re, f) => {
+    const im = spec.imag[f]
+    const m = new Float32Array(re.length)
+    for (let k = 0; k < re.length; k++) m[k] = Math.hypot(re[k], im[k])
+    return m
+  })
+
+  const hasPhase = storePhase && precision === 1
+  const phase = hasPhase
+    ? spec.real.map((re, f) => {
+        const im = spec.imag[f]
+        const p = new Float32Array(re.length)
+        for (let k = 0; k < re.length; k++) p[k] = Math.atan2(im[k], re[k])
+        return p
+      })
+    : undefined
+
   const scaled = forwardLogScale(mag)
-  const region = packSpectrogram(scaled, precision)
+  const region = packSpectrogram(scaled, precision, phase)
 
   const header: WavegramHeader = {
     version: SCHEMA_VERSION,
     precision,
+    hasPhase,
     sampleRate,
     fftSize,
     hopSize,

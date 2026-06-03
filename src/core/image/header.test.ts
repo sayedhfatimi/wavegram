@@ -4,8 +4,9 @@ import { MAGIC } from '../params'
 import { HEADER_BITS, packHeader, unpackHeader } from './header'
 
 const sample: WavegramHeader = {
-  version: 1,
+  version: 2,
   precision: 1,
+  hasPhase: false,
   sampleRate: 16000,
   fftSize: 1024,
   hopSize: 512,
@@ -37,6 +38,7 @@ describe('packHeader / unpackHeader', () => {
     const h: WavegramHeader = {
       version: 15,
       precision: 1,
+      hasPhase: true,
       sampleRate: 0xffffff,
       fftSize: 1023,
       hopSize: 1023,
@@ -44,6 +46,14 @@ describe('packHeader / unpackHeader', () => {
       channels: 255,
     }
     expect(unpackHeader(packHeader(h)).header).toEqual(h)
+  })
+
+  it('round-trips the hasPhase flag', () => {
+    const withPhase = unpackHeader(packHeader({ ...sample, hasPhase: true }))
+    expect(withPhase.header?.hasPhase).toBe(true)
+    expect(withPhase.crcValid).toBe(true)
+    const without = unpackHeader(packHeader({ ...sample, hasPhase: false }))
+    expect(without.header?.hasPhase).toBe(false)
   })
 
   it('detects wrong magic bytes', () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { griffinLim } from './griffinlim'
-import { stftMagnitude } from './stft'
+import { stft, stftMagnitude } from './stft'
 
 /** Spectral convergence: relative magnitude error between two spectrograms. */
 function spectralError(target: Float32Array[], recon: Float32Array[]): number {
@@ -54,5 +54,34 @@ describe('griffinLim', () => {
     griffinLim(target, fftSize, hop, 5, N, (done, total) => seen.push(done / total))
     expect(seen.length).toBeGreaterThan(0)
     expect(seen[seen.length - 1]).toBeCloseTo(1, 6)
+  })
+
+  it('momentum of 0 reproduces vanilla Griffin-Lim', () => {
+    const vanilla = griffinLim(target, fftSize, hop, 10, N)
+    const explicitZero = griffinLim(target, fftSize, hop, 10, N, undefined, 0)
+    for (let i = 0; i < vanilla.length; i++) {
+      expect(explicitZero[i]).toBeCloseTo(vanilla[i], 6)
+    }
+  })
+
+  it('accelerated (momentum) converges faster than vanilla at equal iterations', () => {
+    const iters = 20
+    const vanilla = griffinLim(target, fftSize, hop, iters, N)
+    const accelerated = griffinLim(target, fftSize, hop, iters, N, undefined, 0.95)
+    const errVanilla = spectralError(target, stftMagnitude(vanilla, fftSize, hop))
+    const errAccel = spectralError(target, stftMagnitude(accelerated, fftSize, hop))
+    expect(errAccel).toBeLessThan(errVanilla)
+  })
+
+  it('seeding the true phase converges far faster than zero phase', () => {
+    const spec = stft(sine, fftSize, hop)
+    const truePhase = spec.real.map((re, f) =>
+      Float32Array.from(re, (v, k) => Math.atan2(spec.imag[f][k], v)),
+    )
+    const seeded = griffinLim(target, fftSize, hop, 1, N, undefined, 0, truePhase)
+    const zeroPhase = griffinLim(target, fftSize, hop, 1, N)
+    const errSeeded = spectralError(target, stftMagnitude(seeded, fftSize, hop))
+    const errZero = spectralError(target, stftMagnitude(zeroPhase, fftSize, hop))
+    expect(errSeeded).toBeLessThan(errZero)
   })
 })
