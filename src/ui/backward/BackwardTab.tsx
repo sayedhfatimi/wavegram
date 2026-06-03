@@ -1,7 +1,7 @@
 // Backward tab: Wavegram PNG -> reconstructed WAV (Griffin-Lim in a worker).
 
 import { Loader2 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -24,6 +24,7 @@ import {
   type WavegramHeader,
 } from '@/core/params'
 import { AudioPlayer } from '@/ui/AudioPlayer'
+import { ImageDropzone } from '@/ui/backward/ImageDropzone'
 import { downloadBlob, imageDataToRegion } from '@/ui/lib/browser'
 import { useReconstruct } from '@/ui/lib/useReconstruct'
 
@@ -57,7 +58,8 @@ export function BackwardTab() {
   const [mode, setMode] = useState<QualityMode>('default')
   const [customIters, setCustomIters] = useState(50)
   const { state, run, reset, cancel } = useReconstruct()
-  const inputRef = useRef<HTMLInputElement | null>(null)
+  // Bumping this key remounts the dropzone, which clears its file input on "Start over".
+  const [pickerKey, setPickerKey] = useState(0)
 
   // Surface reconstruction failures as a toast in addition to the inline alert.
   useEffect(() => {
@@ -134,7 +136,7 @@ export function BackwardTab() {
     cancel()
     setImage(null)
     setLoadError(null)
-    if (inputRef.current) inputRef.current.value = ''
+    setPickerKey((k) => k + 1)
   }, [cancel])
 
   return (
@@ -144,13 +146,7 @@ export function BackwardTab() {
           <CardTitle>1. Choose a Wavegram PNG</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/png"
-            onChange={(e) => onFile(e.target.files?.[0])}
-            className="block w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-4 file:py-2 file:text-primary-foreground hover:file:opacity-90"
-          />
+          <ImageDropzone key={pickerKey} onFile={onFile} />
           {loadError && (
             <Alert variant="destructive">
               <AlertTitle>Could not read image</AlertTitle>
@@ -186,7 +182,7 @@ export function BackwardTab() {
                 <AlertTitle>Not a Wavegram image</AlertTitle>
                 <AlertDescription>
                   No Wavegram metadata header was found. Make sure you're loading a PNG
-                  produced by the Audio → Image tab.
+                  produced by the Audio ➔ Image tab.
                 </AlertDescription>
               </Alert>
             )}

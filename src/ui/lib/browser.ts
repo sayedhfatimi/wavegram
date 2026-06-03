@@ -12,6 +12,26 @@ export function imageDataToRegion(img: ImageData): PixelRegion {
   return { width: img.width, height: img.height, rgba: img.data }
 }
 
+/**
+ * Extract the first File from a drag-and-drop event, or undefined if none.
+ * Structurally typed so it accepts both real React/DOM drag events and test stubs.
+ */
+export function fileFromDropEvent(e: {
+  dataTransfer?: { files?: ArrayLike<File> | null } | null
+}): File | undefined {
+  return e.dataTransfer?.files?.[0] ?? undefined
+}
+
+/**
+ * Extract the first File from a paste (clipboard) event, or undefined if none.
+ * Pasted images populate `clipboardData.files` in modern browsers.
+ */
+export function fileFromPasteEvent(e: {
+  clipboardData?: { files?: ArrayLike<File> | null } | null
+}): File | undefined {
+  return e.clipboardData?.files?.[0] ?? undefined
+}
+
 /** Trigger a browser download of a Blob under the given filename. */
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob)
