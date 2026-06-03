@@ -40,7 +40,7 @@ const HOP = DEFAULTS.hopSize
 const name = basename(input, extname(input))
 
 // 1. Decode to 16kHz mono float32 PCM via ffmpeg (stdout).
-console.log(`Decoding ${input} → ${SR}Hz mono…`)
+console.log(`Decoding ${input} ➔ ${SR}Hz mono…`)
 const raw = execFileSync(
   'ffmpeg',
   ['-v', 'error', '-i', input, '-ac', '1', '-ar', String(SR), '-f', 'f32le', '-'],
@@ -61,8 +61,8 @@ console.log(
 const originalWav = encodeWav(samples, SR)
 writeFileSync(join(outDir, `${name}.original.wav`), Buffer.from(originalWav))
 
-// 4. Forward → real PNG.
-console.log('Encoding spectrogram → PNG…')
+// 4. Forward ➔ real PNG.
+console.log('Encoding spectrogram ➔ PNG…')
 const region = encodeToImage(samples, SR, N, FFT, HOP, DEFAULTS.precision)
 const png = new PNG({ width: region.width, height: region.height })
 png.data = Buffer.from(region.rgba.buffer, region.rgba.byteOffset, region.rgba.byteLength)

@@ -1,4 +1,6 @@
-# Wavegram
+<p align="center">
+  <img src="docs/wavegram-banner.png" alt="Wavegram" width="520" />
+</p>
 
 Turn audio into a self-describing spectrogram image — and reconstruct the audio back from
 that image. Wavegram is a two-tab single-page app that runs **entirely in your browser**:
@@ -14,7 +16,7 @@ on any audio file up to 60 seconds.
 │               magic · version · params · CRC  │
 ├──────────────────────────────────────────────┤
 │  Rows 16+     Spectrogram                      │
-│               X = time  →                      │
+│               X = time  ➔                      │
 │               Y = frequency (low at bottom) ↑  │
 │               brightness/colour = magnitude    │
 └──────────────────────────────────────────────┘
@@ -22,15 +24,15 @@ on any audio file up to 60 seconds.
 
 ## How it works
 
-**Audio → Image (Forward tab)**
-decode (Web Audio) → mono mixdown → resample to 16 kHz → peak-normalize → cap at 60 s →
-STFT with a Hann window (FFT 1024 / hop 512) → log-magnitude spectrogram → write the
-16-px metadata header → export PNG.
+**Audio ➔ Image (Forward tab)**
+decode (Web Audio) ➔ mono mixdown ➔ resample to 16 kHz ➔ peak-normalize ➔ cap at 60 s ➔
+STFT with a Hann window (FFT 1024 / hop 512) ➔ log-magnitude spectrogram ➔ write the
+16-px metadata header ➔ export PNG.
 
-**Image → Audio (Backward tab)**
-read the PNG → reject lossy formats → validate magic bytes + CRC-16 → display the decoded
-metadata → recover linear magnitudes → **Griffin-Lim phase recovery in a Web Worker** →
-overlap-add → trim to the original sample count → download WAV.
+**Image ➔ Audio (Backward tab)**
+read the PNG ➔ reject lossy formats ➔ validate magic bytes + CRC-16 ➔ display the decoded
+metadata ➔ recover linear magnitudes ➔ **Griffin-Lim phase recovery in a Web Worker** ➔
+overlap-add ➔ trim to the original sample count ➔ download WAV.
 
 Phase is discarded in the forward direction and recovered probabilistically (Griffin-Lim)
 on the way back, so the reconstruction is faithful but not bit-exact — that's inherent to a
@@ -75,10 +77,18 @@ bun install
 bun run dev          # http://localhost:5173
 ```
 
-1. **Audio → Image**: pick an audio file, optionally adjust FFT size / precision, click
+1. **Audio ➔ Image**: pick an audio file, optionally adjust FFT size / precision, click
    *Generate Wavegram*, download the PNG.
-2. **Image → Audio**: load that PNG, confirm the Magic ✓ / CRC ✓ badges, choose a Griffin-Lim
+2. **Image ➔ Audio**: load that PNG, confirm the Magic ✓ / CRC ✓ badges, choose a Griffin-Lim
    quality preset (Fast 32 / Default 50 / Quality 100), reconstruct, download the WAV.
+
+### Loading a Wavegram on mobile
+
+The Image ➔ Audio drop zone is a tap target: on a phone it opens your **photo library / Files**,
+so a Wavegram you received and saved is one tap away. On desktop you can also **drag-and-drop**
+or **paste** a PNG straight onto it. However it arrives, the PNG must be the *original,
+unmodified* file — a screenshot, a re-saved copy, or a **photo of a spectrogram** loses the
+exact pixel values and fails the CRC check (see Scope below).
 
 ## Scripts
 
@@ -110,8 +120,8 @@ src/
     image/              crc16 · header · squares · spectrogram · png · codec
     log.ts              log-magnitude scaling
     params.ts           defaults + shared types
-    forward.ts          audio → image pipeline
-    backward.ts         image → magnitude pipeline
+    forward.ts          audio ➔ image pipeline
+    backward.ts         image ➔ magnitude pipeline
   workers/
     reconstruct.worker.ts   Griffin-Lim off the main thread
   ui/                   React components (forward/ + backward/ tabs, hooks)
@@ -131,6 +141,8 @@ Canvas APIs. Package manager: **bun**.
 
 ## Scope (v1)
 
-Mono audio, ≤ 60 seconds, PNG input only. Camera capture is intentionally deferred — a photo
-of the analog spectrogram region can't preserve magnitude values faithfully (perspective and
-lighting distortion), so it's out of scope for faithful reconstruction.
+Mono audio, ≤ 60 seconds, PNG input only. The PNG can be picked from your photo library / Files
+on mobile, or dropped/pasted on desktop — but it must be the original, unmodified file. *Camera
+capture* (photographing a spectrogram) is intentionally **not** supported: perspective and
+lighting distortion can't preserve the magnitude values, so a photo fails the CRC and can't be
+faithfully reconstructed.
