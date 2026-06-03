@@ -3,8 +3,13 @@
 // left-aligned and any extra width is black-padded. The decoder recomputes the frame count from
 // header params, so it reads only the meaningful columns and ignores the padding.
 
-import { renderHeaderStrip, readHeaderStrip, STRIP_HEIGHT_PX, MIN_STRIP_WIDTH } from './squares'
 import type { PixelRegion } from './spectrogram'
+import {
+  MIN_STRIP_WIDTH,
+  readHeaderStrip,
+  renderHeaderStrip,
+  STRIP_HEIGHT_PX,
+} from './squares'
 
 /** Stack the header strip over the spectrogram region into one RGBA image. */
 export function composeImage(headerBits: Uint8Array, region: PixelRegion): PixelRegion {

@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import { stft } from './stft'
+import { describe, expect, it } from 'vitest'
 import { istft } from './istft'
+import { stft } from './stft'
 
 function rmse(a: Float32Array, b: Float32Array, from: number, to: number): number {
   let sum = 0

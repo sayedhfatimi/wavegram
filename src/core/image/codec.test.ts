@@ -1,13 +1,14 @@
-import { describe, it, expect } from 'vitest'
-import { composeImage, readHeaderFromImage, readRegionFromImage } from './codec'
-import { packSpectrogram, unpackSpectrogram } from './spectrogram'
-import { packHeader, unpackHeader } from './header'
-import { STRIP_HEIGHT_PX, MIN_STRIP_WIDTH } from './squares'
+import { describe, expect, it } from 'vitest'
 import type { WavegramHeader } from '../params'
+import { composeImage, readHeaderFromImage, readRegionFromImage } from './codec'
+import { packHeader, unpackHeader } from './header'
+import { packSpectrogram, unpackSpectrogram } from './spectrogram'
+import { MIN_STRIP_WIDTH, STRIP_HEIGHT_PX } from './squares'
 
 const header: WavegramHeader = {
-  version: 1,
+  version: 2,
   precision: 1,
+  hasPhase: false,
   sampleRate: 16000,
   fftSize: 8, // tiny: 5 bins
   hopSize: 4,

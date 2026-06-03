@@ -1,5 +1,23 @@
-import { describe, it, expect } from 'vitest'
-import { mixToMono, peakNormalize, resampleLinear, capSamples } from './decode'
+import { describe, expect, it } from 'vitest'
+import {
+  capSamples,
+  mixToMono,
+  peakNormalize,
+  resampleLinear,
+  resampleSinc,
+} from './decode'
+
+/** Energy of `signal` at a single frequency (single-bin DFT magnitude). */
+function bandEnergy(signal: Float32Array, rate: number, freq: number): number {
+  let re = 0
+  let im = 0
+  for (let n = 0; n < signal.length; n++) {
+    const phase = (2 * Math.PI * freq * n) / rate
+    re += signal[n] * Math.cos(phase)
+    im += signal[n] * Math.sin(phase)
+  }
+  return Math.hypot(re, im) / signal.length
+}
 
 describe('mixToMono', () => {
   it('returns a copy of a single channel', () => {
@@ -52,6 +70,50 @@ describe('resampleLinear', () => {
     expect(out[1]).toBeCloseTo(0.5, 6)
     expect(out[2]).toBeCloseTo(1, 6)
     expect(out[3]).toBeCloseTo(1, 6)
+  })
+})
+
+describe('resampleSinc', () => {
+  it('returns a copy when rates match', () => {
+    const s = Float32Array.from([0, 1, 2, 3])
+    const out = resampleSinc(s, 16000, 16000)
+    expect(Array.from(out)).toEqual([0, 1, 2, 3])
+    expect(out).not.toBe(s)
+  })
+
+  it('produces the expected output length', () => {
+    const s = new Float32Array(4800)
+    expect(resampleSinc(s, 48000, 16000).length).toBe(1600)
+  })
+
+  it('suppresses aliasing far better than linear interpolation', () => {
+    // A 14 kHz tone is above the 8 kHz Nyquist of the 16 kHz target. Without an
+    // anti-alias filter it folds down to |16000 - 14000| = 2000 Hz.
+    const srcRate = 48000
+    const dstRate = 16000
+    const N = 4800 // 0.1 s
+    const f0 = 14000
+    const src = Float32Array.from({ length: N }, (_, i) =>
+      Math.sin((2 * Math.PI * f0 * i) / srcRate),
+    )
+    const aliasFreq = 2000
+    const eLinear = bandEnergy(resampleLinear(src, srcRate, dstRate), dstRate, aliasFreq)
+    const eSinc = bandEnergy(resampleSinc(src, srcRate, dstRate), dstRate, aliasFreq)
+    expect(eSinc).toBeLessThan(eLinear * 0.25)
+  })
+
+  it('preserves a passband tone', () => {
+    const srcRate = 48000
+    const dstRate = 16000
+    const N = 4800
+    const f0 = 1000 // well within the 8 kHz target Nyquist
+    const src = Float32Array.from({ length: N }, (_, i) =>
+      Math.sin((2 * Math.PI * f0 * i) / srcRate),
+    )
+    const out = resampleSinc(src, srcRate, dstRate)
+    const inBand = bandEnergy(out, dstRate, f0)
+    const offBand = bandEnergy(out, dstRate, 4000)
+    expect(inBand).toBeGreaterThan(offBand * 10)
   })
 })
 

@@ -29,7 +29,11 @@ export function numFrames(len: number, fftSize: number, hopSize: number): number
 }
 
 /** Forward STFT returning per-frame complex half-spectra. */
-export function stft(samples: Float32Array, fftSize: number, hopSize: number): ComplexSTFT {
+export function stft(
+  samples: Float32Array,
+  fftSize: number,
+  hopSize: number,
+): ComplexSTFT {
   const fft = new FFT(fftSize)
   const win = hannWindow(fftSize)
   const bins = freqBins(fftSize)

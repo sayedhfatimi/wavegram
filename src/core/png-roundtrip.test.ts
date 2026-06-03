@@ -3,12 +3,12 @@
 // PNG encode/decode preserves the 16-bit RGB-packed magnitudes and the B&W header squares
 // exactly, so the self-describing image survives being written to and read from a real .png file.
 
-import { describe, it, expect } from 'vitest'
 import { PNG } from 'pngjs'
-import { encodeToImage } from './forward'
-import { readMetadata, extractMagnitude } from './backward'
+import { describe, expect, it } from 'vitest'
 import { griffinLim } from './audio/griffinlim'
 import { stftMagnitude } from './audio/stft'
+import { extractMagnitude, readMetadata } from './backward'
+import { encodeToImage } from './forward'
 import { assertPng, detectImageFormat } from './image/png'
 
 const sampleRate = 16000
@@ -23,9 +23,17 @@ const sig = Float32Array.from({ length: N }, (_, i) => {
 })
 
 /** Encode a core PixelRegion to real PNG bytes via pngjs. */
-function regionToPngBytes(region: { width: number; height: number; rgba: Uint8ClampedArray }): Uint8Array {
+function regionToPngBytes(region: {
+  width: number
+  height: number
+  rgba: Uint8ClampedArray
+}): Uint8Array {
   const png = new PNG({ width: region.width, height: region.height })
-  png.data = Buffer.from(region.rgba.buffer, region.rgba.byteOffset, region.rgba.byteLength)
+  png.data = Buffer.from(
+    region.rgba.buffer,
+    region.rgba.byteOffset,
+    region.rgba.byteLength,
+  )
   return new Uint8Array(PNG.sync.write(png))
 }
 
@@ -35,7 +43,11 @@ function pngBytesToRegion(bytes: Uint8Array) {
   return {
     width: png.width,
     height: png.height,
-    rgba: new Uint8ClampedArray(png.data.buffer, png.data.byteOffset, png.data.byteLength),
+    rgba: new Uint8ClampedArray(
+      png.data.buffer,
+      png.data.byteOffset,
+      png.data.byteLength,
+    ),
   }
 }
 
@@ -75,7 +87,13 @@ describe('real PNG codec round trip (16-bit)', () => {
     const meta = readMetadata(back.rgba, back.width)
     expect(meta.magicValid).toBe(true)
     expect(meta.crcValid).toBe(true)
-    expect(meta.header).toMatchObject({ sampleRate, fftSize, hopSize: hop, sampleCount: N, precision: 1 })
+    expect(meta.header).toMatchObject({
+      sampleRate,
+      fftSize,
+      hopSize: hop,
+      sampleCount: N,
+      precision: 1,
+    })
   })
 
   it('reconstructs accurate audio after a real PNG file round trip', () => {
@@ -83,7 +101,10 @@ describe('real PNG codec round trip (16-bit)', () => {
     const meta = readMetadata(back.rgba, back.width)
     const mag = extractMagnitude(back.rgba, back.width, back.height, meta.header!)
     const recon = griffinLim(mag, fftSize, hop, 60, N)
-    const err = spectralError(stftMagnitude(sig, fftSize, hop), stftMagnitude(recon, fftSize, hop))
+    const err = spectralError(
+      stftMagnitude(sig, fftSize, hop),
+      stftMagnitude(recon, fftSize, hop),
+    )
     expect(err).toBeLessThan(0.15)
   })
 })

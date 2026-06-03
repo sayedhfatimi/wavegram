@@ -25,7 +25,7 @@ const OFF = {
   magic: 0, // 32
   version: 32, // 4
   precision: 36, // 1
-  // reserved spare: 37 (1)
+  hasPhase: 37, // 1 (was reserved spare)
   sampleRate: 38, // 24
   fftSize: 62, // 11
   hopSize: 73, // 11
@@ -63,7 +63,7 @@ export function packHeader(h: WavegramHeader): Uint8Array {
   pushBits(bits, MAGIC >>> 0, 32)
   pushBits(bits, h.version, 4)
   pushBits(bits, h.precision, 1) // reserved bit 0
-  pushBits(bits, 0, 1) // reserved bit 1 (spare)
+  pushBits(bits, h.hasPhase ? 1 : 0, 1) // reserved bit 1: phase-seed flag
   pushBits(bits, h.sampleRate, 24)
   pushBits(bits, h.fftSize, 11)
   pushBits(bits, h.hopSize, 11)
@@ -79,7 +79,7 @@ export function packHeader(h: WavegramHeader): Uint8Array {
 /** Decode and validate a 140-bit header. */
 export function unpackHeader(bits: Uint8Array): DecodedHeader {
   const magic = readBits(bits, OFF.magic, 32)
-  const magicValid = magic === (MAGIC >>> 0)
+  const magicValid = magic === MAGIC >>> 0
 
   const storedCrc = readBits(bits, OFF.crc, 16)
   const computedCrc = crc16(bits.subarray(0, PAYLOAD_BITS))
@@ -95,6 +95,7 @@ export function unpackHeader(bits: Uint8Array): DecodedHeader {
     header: {
       version: readBits(bits, OFF.version, 4),
       precision: readBits(bits, OFF.precision, 1) as Precision,
+      hasPhase: readBits(bits, OFF.hasPhase, 1) === 1,
       sampleRate: readBits(bits, OFF.sampleRate, 24),
       fftSize: readBits(bits, OFF.fftSize, 11),
       hopSize: readBits(bits, OFF.hopSize, 11),

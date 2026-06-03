@@ -9,7 +9,7 @@ import type {
 export type ReconstructState =
   | { status: 'idle' }
   | { status: 'running'; progress: number }
-  | { status: 'done'; wav: Blob }
+  | { status: 'done'; wav: Blob; error: number }
   | { status: 'error'; message: string }
 
 export function useReconstruct() {
@@ -21,7 +21,20 @@ export function useReconstruct() {
     return () => workerRef.current?.terminate()
   }, [])
 
-  const reset = useCallback(() => setState({ status: 'idle' }), [])
+  const reset = useCallback(() => {
+    workerRef.current?.terminate()
+    workerRef.current = null
+    setState({ status: 'idle' })
+  }, [])
+
+  // Abort an in-flight reconstruction and return to idle.
+  const cancel = useCallback(() => {
+    if (workerRef.current) {
+      workerRef.current.terminate()
+      workerRef.current = null
+    }
+    setState({ status: 'idle' })
+  }, [])
 
   const run = useCallback((req: ReconstructRequest) => {
     workerRef.current?.terminate()
@@ -37,7 +50,11 @@ export function useReconstruct() {
       if (msg.type === 'progress') {
         setState({ status: 'running', progress: msg.done / msg.total })
       } else if (msg.type === 'done') {
-        setState({ status: 'done', wav: new Blob([msg.wav], { type: 'audio/wav' }) })
+        setState({
+          status: 'done',
+          wav: new Blob([msg.wav], { type: 'audio/wav' }),
+          error: msg.error,
+        })
         worker.terminate()
         workerRef.current = null
       } else {
@@ -52,5 +69,5 @@ export function useReconstruct() {
     worker.postMessage(req)
   }, [])
 
-  return { state, run, reset }
+  return { state, run, reset, cancel }
 }

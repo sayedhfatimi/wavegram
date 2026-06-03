@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { forwardLogScale, inverseLogScale, FLOOR_DB } from './log'
+import { describe, expect, it } from 'vitest'
+import { FLOOR_DB, forwardLogScale, inverseLogScale } from './log'
 
 describe('forwardLogScale', () => {
   it('maps the global maximum to 1.0 and stays within [0,1]', () => {

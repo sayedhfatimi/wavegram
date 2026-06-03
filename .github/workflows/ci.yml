@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+      - run: bun run typecheck
+      - run: bun run test
+      - run: bun run build
+
+  e2e:
+    name: End-to-end smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - name: Run smoke test against preview server
+        env:
+          WAVEGRAM_CHROME: /usr/bin/google-chrome
+        run: |
+          bun run preview --port 4173 &
+          PREVIEW_PID=$!
+          trap 'kill $PREVIEW_PID 2>/dev/null || true' EXIT
+          # wait for the preview server to accept connections
+          for _ in $(seq 1 30); do
+            if curl -sSf http://localhost:4173/ >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          bun run e2e
