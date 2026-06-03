@@ -8,8 +8,8 @@
 //
 // Pure and worker-safe (no DOM). `onProgress(done, total)` fires once per completed iteration.
 
-import { stft } from './stft'
 import { istft } from './istft'
+import { stft } from './stft'
 
 export type ProgressFn = (done: number, total: number) => void
 

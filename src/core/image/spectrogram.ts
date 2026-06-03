@@ -17,7 +17,10 @@ export interface PixelRegion {
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v)
 
 /** Pack values[frame][bin] (each in [0,1]) into an RGBA pixel region. */
-export function packSpectrogram(values: Float32Array[], precision: Precision): PixelRegion {
+export function packSpectrogram(
+  values: Float32Array[],
+  precision: Precision,
+): PixelRegion {
   const width = values.length
   const height = width > 0 ? values[0].length : 0
   const rgba = new Uint8ClampedArray(width * height * 4)

@@ -1,6 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ForwardTab } from '@/ui/forward/ForwardTab'
 import { BackwardTab } from '@/ui/backward/BackwardTab'
+import { ForwardTab } from '@/ui/forward/ForwardTab'
 
 function App() {
   return (
@@ -8,8 +8,8 @@ function App() {
       <header className="flex flex-col gap-1">
         <h1 className="text-3xl font-semibold tracking-tight">Wavegram</h1>
         <p className="text-sm text-muted-foreground">
-          Turn audio into a self-describing spectrogram image, and reconstruct audio
-          from it — entirely in your browser.
+          Turn audio into a self-describing spectrogram image, and reconstruct audio from
+          it — entirely in your browser.
         </p>
       </header>
 
@@ -27,8 +27,8 @@ function App() {
       </Tabs>
 
       <footer className="mt-auto pt-6 text-xs text-muted-foreground">
-        No server, no uploads — all processing runs locally. PNG input only;
-        camera capture is planned for a future version.
+        No server, no uploads — all processing runs locally. PNG input only; camera
+        capture is planned for a future version.
       </footer>
     </div>
   )

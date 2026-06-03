@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { hannWindow, numFrames, stft, stftMagnitude } from './stft'
 
 describe('hannWindow', () => {
@@ -45,7 +45,9 @@ describe('stft', () => {
   })
 
   it('magnitude equals hypot(real, imag) and is non-negative', () => {
-    const sig = Float32Array.from({ length: 512 }, (_, i) => Math.sin((2 * Math.PI * 5 * i) / 512))
+    const sig = Float32Array.from({ length: 512 }, (_, i) =>
+      Math.sin((2 * Math.PI * 5 * i) / 512),
+    )
     const { real, imag } = stft(sig, 256, 128)
     const mag = stftMagnitude(sig, 256, 128)
     for (let f = 0; f < real.length; f++) {

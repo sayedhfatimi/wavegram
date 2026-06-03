@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { mixToMono, peakNormalize, resampleLinear, capSamples } from './decode'
+import { describe, expect, it } from 'vitest'
+import { capSamples, mixToMono, peakNormalize, resampleLinear } from './decode'
 
 describe('mixToMono', () => {
   it('returns a copy of a single channel', () => {

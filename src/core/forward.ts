@@ -5,11 +5,11 @@
 // Pure (no DOM): returns a PixelRegion the UI turns into a PNG via canvas.
 
 import { stftMagnitude } from './audio/stft'
-import { forwardLogScale } from './log'
-import { packSpectrogram, type PixelRegion } from './image/spectrogram'
-import { packHeader } from './image/header'
 import { composeImage } from './image/codec'
-import { SCHEMA_VERSION, DEFAULTS, type Precision, type WavegramHeader } from './params'
+import { packHeader } from './image/header'
+import { type PixelRegion, packSpectrogram } from './image/spectrogram'
+import { forwardLogScale } from './log'
+import { DEFAULTS, type Precision, SCHEMA_VERSION, type WavegramHeader } from './params'
 
 /** Encode mono samples into a full Wavegram image. */
 export function encodeToImage(

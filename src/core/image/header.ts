@@ -79,7 +79,7 @@ export function packHeader(h: WavegramHeader): Uint8Array {
 /** Decode and validate a 140-bit header. */
 export function unpackHeader(bits: Uint8Array): DecodedHeader {
   const magic = readBits(bits, OFF.magic, 32)
-  const magicValid = magic === (MAGIC >>> 0)
+  const magicValid = magic === MAGIC >>> 0
 
   const storedCrc = readBits(bits, OFF.crc, 16)
   const computedCrc = crc16(bits.subarray(0, PAYLOAD_BITS))

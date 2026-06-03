@@ -13,7 +13,13 @@ export const STRIP_HEIGHT_PX = 16
 export const BITS_PER_ROW = HEADER_BITS / 2 // 70
 export const MIN_STRIP_WIDTH = BITS_PER_ROW * SQUARE_PX // 560
 
-function setPixel(rgba: Uint8ClampedArray, width: number, x: number, y: number, v: number) {
+function setPixel(
+  rgba: Uint8ClampedArray,
+  width: number,
+  x: number,
+  y: number,
+  v: number,
+) {
   const i = (y * width + x) * 4
   rgba[i] = v
   rgba[i + 1] = v

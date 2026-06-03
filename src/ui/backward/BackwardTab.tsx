@@ -1,10 +1,10 @@
 // Backward tab: Wavegram PNG -> reconstructed WAV (Griffin-Lim in a worker).
 
 import { useCallback, useMemo, useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import {
   Select,
@@ -13,15 +13,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { extractMagnitude, readMetadata } from '@/core/backward'
 import { fileToImageData } from '@/core/image/png'
-import { readMetadata, extractMagnitude } from '@/core/backward'
-import { imageDataToRegion, downloadBlob } from '@/ui/lib/browser'
-import { useReconstruct } from '@/ui/lib/useReconstruct'
 import {
   GRIFFIN_LIM_PRESETS,
   type QualityPreset,
   type WavegramHeader,
 } from '@/core/params'
+import { downloadBlob, imageDataToRegion } from '@/ui/lib/browser'
+import { useReconstruct } from '@/ui/lib/useReconstruct'
 
 interface LoadedImage {
   rgba: Uint8ClampedArray
@@ -45,34 +45,42 @@ export function BackwardTab() {
   const [preset, setPreset] = useState<QualityPreset>('default')
   const { state, run, reset } = useReconstruct()
 
-  const onFile = useCallback(async (file: File | undefined) => {
-    if (!file) return
-    setLoadError(null)
-    reset()
-    setImage(null)
-    try {
-      const img = await fileToImageData(file)
-      const region = imageDataToRegion(img)
-      const meta = readMetadata(region.rgba, region.width)
-      setImage({
-        rgba: region.rgba,
-        width: region.width,
-        height: region.height,
-        magicValid: meta.magicValid,
-        crcValid: meta.crcValid,
-        header: meta.header,
-        fileName: file.name,
-      })
-    } catch (e) {
-      setLoadError(e instanceof Error ? e.message : String(e))
-    }
-  }, [reset])
+  const onFile = useCallback(
+    async (file: File | undefined) => {
+      if (!file) return
+      setLoadError(null)
+      reset()
+      setImage(null)
+      try {
+        const img = await fileToImageData(file)
+        const region = imageDataToRegion(img)
+        const meta = readMetadata(region.rgba, region.width)
+        setImage({
+          rgba: region.rgba,
+          width: region.width,
+          height: region.height,
+          magicValid: meta.magicValid,
+          crcValid: meta.crcValid,
+          header: meta.header,
+          fileName: file.name,
+        })
+      } catch (e) {
+        setLoadError(e instanceof Error ? e.message : String(e))
+      }
+    },
+    [reset],
+  )
 
   const canReconstruct = !!image && image.magicValid && image.crcValid && !!image.header
 
   const onReconstruct = useCallback(() => {
     if (!image?.header) return
-    const magnitude = extractMagnitude(image.rgba, image.width, image.height, image.header)
+    const magnitude = extractMagnitude(
+      image.rgba,
+      image.width,
+      image.height,
+      image.header,
+    )
     run({
       magnitude,
       fftSize: image.header.fftSize,
@@ -84,7 +92,8 @@ export function BackwardTab() {
   }, [image, preset, run])
 
   const outName = useMemo(
-    () => (image?.fileName ?? 'wavegram').replace(/\.[^.]+$/, '').replace(/\.wavegram$/, ''),
+    () =>
+      (image?.fileName ?? 'wavegram').replace(/\.[^.]+$/, '').replace(/\.wavegram$/, ''),
     [image],
   )
 

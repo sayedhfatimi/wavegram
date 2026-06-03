@@ -5,10 +5,10 @@
 // Pure (no DOM): the UI feeds in RGBA from a decoded PNG.
 
 import { numFrames } from './audio/stft'
-import { inverseLogScale } from './log'
-import { unpackSpectrogram } from './image/spectrogram'
 import { readHeaderFromImage, readRegionFromImage } from './image/codec'
-import { unpackHeader, type DecodedHeader } from './image/header'
+import { type DecodedHeader, unpackHeader } from './image/header'
+import { unpackSpectrogram } from './image/spectrogram'
+import { inverseLogScale } from './log'
 import { freqBins, type WavegramHeader } from './params'
 
 /** Read and validate the metadata header from a decoded image. */

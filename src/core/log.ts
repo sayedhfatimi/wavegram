@@ -6,7 +6,7 @@
 // fixed, the decoder inverts it without any extra header fields.
 
 export const FLOOR_DB = -80
-const FLOOR_LINEAR = Math.pow(10, FLOOR_DB / 20) // smallest relative magnitude above the floor
+const FLOOR_LINEAR = 10 ** (FLOOR_DB / 20) // smallest relative magnitude above the floor
 
 /** Map a normalized magnitude (0..1) to a stored value (0..1) via the dB curve. */
 function encode(norm: number): number {
@@ -20,7 +20,7 @@ function encode(norm: number): number {
 function decode(s: number): number {
   if (s <= 0) return 0
   const db = s * -FLOOR_DB + FLOOR_DB
-  return Math.pow(10, db / 20)
+  return 10 ** (db / 20)
 }
 
 /** Forward: linear magnitudes -> stored values in [0,1], normalized by the global max. */

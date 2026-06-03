@@ -81,7 +81,8 @@ export async function decodeAudioFile(
   maxSec = DEFAULTS.maxDurationSec,
 ): Promise<DecodedAudio> {
   const AudioCtx: typeof AudioContext =
-    window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    window.AudioContext ??
+    (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
   const ctx = new AudioCtx()
   try {
     const buffer = await ctx.decodeAudioData(await file.arrayBuffer())

@@ -4,11 +4,7 @@ import type { PixelRegion } from '@/core/image/spectrogram'
 
 /** Convert a core PixelRegion into a canvas ImageData. */
 export function regionToImageData(region: PixelRegion): ImageData {
-  return new ImageData(
-    new Uint8ClampedArray(region.rgba),
-    region.width,
-    region.height,
-  )
+  return new ImageData(new Uint8ClampedArray(region.rgba), region.width, region.height)
 }
 
 /** Read an ImageData back into a plain RGBA buffer + dimensions. */

@@ -16,7 +16,10 @@ function startsWith(bytes: Uint8Array, sig: number[], offset = 0): boolean {
 export function detectImageFormat(bytes: Uint8Array): ImageFormat {
   if (startsWith(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return 'png'
   if (startsWith(bytes, [0xff, 0xd8, 0xff])) return 'jpeg'
-  if (startsWith(bytes, [0x52, 0x49, 0x46, 0x46]) && startsWith(bytes, [0x57, 0x45, 0x42, 0x50], 8))
+  if (
+    startsWith(bytes, [0x52, 0x49, 0x46, 0x46]) &&
+    startsWith(bytes, [0x57, 0x45, 0x42, 0x50], 8)
+  )
     return 'webp'
   return 'unknown'
 }
@@ -38,7 +41,9 @@ export function assertPng(bytes: Uint8Array): void {
 export async function fileToImageData(file: File): Promise<ImageData> {
   const buf = new Uint8Array(await file.arrayBuffer())
   assertPng(buf)
-  const bitmap = await createImageBitmap(new Blob([buf as BlobPart], { type: 'image/png' }))
+  const bitmap = await createImageBitmap(
+    new Blob([buf as BlobPart], { type: 'image/png' }),
+  )
   const canvas = document.createElement('canvas')
   canvas.width = bitmap.width
   canvas.height = bitmap.height

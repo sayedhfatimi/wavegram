@@ -1,9 +1,9 @@
 // Forward tab: audio file -> Wavegram PNG.
 
 import { useCallback, useRef, useState } from 'react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
   Select,
   SelectContent,
@@ -11,11 +11,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { decodeAudioFile, type DecodedAudio } from '@/core/audio/decode'
+import { type DecodedAudio, decodeAudioFile } from '@/core/audio/decode'
 import { encodeToImage } from '@/core/forward'
-import { DEFAULTS, type Precision } from '@/core/params'
 import { imageDataToPngBlob } from '@/core/image/png'
-import { regionToImageData, downloadBlob } from '@/ui/lib/browser'
+import { DEFAULTS, type Precision } from '@/core/params'
+import { downloadBlob, regionToImageData } from '@/ui/lib/browser'
 
 const FFT_OPTIONS = [256, 512, 1024, 2048]
 const PRECISION_OPTIONS: { value: Precision; label: string }[] = [
@@ -118,10 +118,7 @@ export function ForwardTab() {
         <CardContent className="flex flex-wrap gap-6">
           <label className="flex flex-col gap-2 text-sm">
             <span className="text-muted-foreground">FFT window size</span>
-            <Select
-              value={String(fftSize)}
-              onValueChange={(v) => setFftSize(Number(v))}
-            >
+            <Select value={String(fftSize)} onValueChange={(v) => setFftSize(Number(v))}>
               <SelectTrigger className="w-40">
                 <SelectValue />
               </SelectTrigger>
@@ -134,10 +131,10 @@ export function ForwardTab() {
               </SelectContent>
             </Select>
           </label>
-          <label className="flex flex-col gap-2 text-sm">
+          <div className="flex flex-col gap-2 text-sm">
             <span className="text-muted-foreground">Hop size (auto = window / 2)</span>
             <span className="flex h-9 items-center font-mono">{hopSize}</span>
-          </label>
+          </div>
           <label className="flex flex-col gap-2 text-sm">
             <span className="text-muted-foreground">Magnitude precision</span>
             <Select

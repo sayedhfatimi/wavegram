@@ -1,13 +1,13 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
+import type { WavegramHeader } from '../params'
+import { packHeader, unpackHeader } from './header'
 import {
-  renderHeaderStrip,
+  MIN_STRIP_WIDTH,
   readHeaderStrip,
+  renderHeaderStrip,
   SQUARE_PX,
   STRIP_HEIGHT_PX,
-  MIN_STRIP_WIDTH,
 } from './squares'
-import { packHeader, unpackHeader } from './header'
-import type { WavegramHeader } from '../params'
 
 function randomBits(n: number, seed: number): Uint8Array {
   // deterministic LCG so the test is stable without Math.random

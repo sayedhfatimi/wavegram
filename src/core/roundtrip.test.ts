@@ -1,8 +1,8 @@
-import { describe, it, expect } from 'vitest'
-import { encodeToImage } from './forward'
-import { readMetadata, extractMagnitude } from './backward'
+import { describe, expect, it } from 'vitest'
 import { griffinLim } from './audio/griffinlim'
 import { stftMagnitude } from './audio/stft'
+import { extractMagnitude, readMetadata } from './backward'
+import { encodeToImage } from './forward'
 
 const sampleRate = 16000
 const fftSize = 1024
@@ -48,7 +48,13 @@ describe('full audio -> image -> audio round trip', () => {
     const meta = readMetadata(img.rgba, img.width)
     expect(meta.magicValid).toBe(true)
     expect(meta.crcValid).toBe(true)
-    expect(meta.header).toMatchObject({ sampleRate, fftSize, hopSize: hop, sampleCount: N, precision: 1 })
+    expect(meta.header).toMatchObject({
+      sampleRate,
+      fftSize,
+      hopSize: hop,
+      sampleCount: N,
+      precision: 1,
+    })
   })
 
   it('reconstructs an accurate spectrogram (16-bit, low spectral error)', () => {

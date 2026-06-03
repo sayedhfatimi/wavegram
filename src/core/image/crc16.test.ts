@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { crc16, bytesToBits } from './crc16'
+import { describe, expect, it } from 'vitest'
+import { bytesToBits, crc16 } from './crc16'
 
 describe('crc16 (CCITT-FALSE)', () => {
   it('matches the canonical "123456789" check value 0x29B1', () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { packSpectrogram, unpackSpectrogram } from './spectrogram'
 
 // values[frame][bin], all frames have the same bin count

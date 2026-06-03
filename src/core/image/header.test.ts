@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest'
-import { packHeader, unpackHeader, HEADER_BITS } from './header'
+import { describe, expect, it } from 'vitest'
 import type { WavegramHeader } from '../params'
 import { MAGIC } from '../params'
+import { HEADER_BITS, packHeader, unpackHeader } from './header'
 
 const sample: WavegramHeader = {
   version: 1,
