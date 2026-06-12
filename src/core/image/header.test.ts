@@ -40,12 +40,30 @@ describe('packHeader / unpackHeader', () => {
       precision: 1,
       hasPhase: true,
       sampleRate: 0xffffff,
-      fftSize: 1023,
-      hopSize: 1023,
+      fftSize: 2048, // v3+ stores log2 (=11), which fits the 11-bit field; raw 2048 would not
+      hopSize: 1023, // hopSize stays raw: exercise its 11-bit max
       sampleCount: 0xffffffff,
       channels: 255,
     }
     expect(unpackHeader(packHeader(h)).header).toEqual(h)
+  })
+
+  it('round-trips fftSize 2048 (v3 exponent encoding)', () => {
+    const decoded = unpackHeader(packHeader({ ...sample, version: 3, fftSize: 2048 }))
+    expect(decoded.crcValid).toBe(true)
+    expect(decoded.header?.fftSize).toBe(2048)
+  })
+
+  it('decodes a legacy v2 image with a raw fftSize field', () => {
+    const decoded = unpackHeader(packHeader({ ...sample, version: 2, fftSize: 1024 }))
+    expect(decoded.crcValid).toBe(true)
+    expect(decoded.header?.fftSize).toBe(1024)
+  })
+
+  it('throws rather than silently truncating an oversized field', () => {
+    // channels is an 8-bit field; 256 does not fit. (The same guard catches the original
+    // fftSize-2048-in-11-bits truncation that this fix is about.)
+    expect(() => packHeader({ ...sample, channels: 256 })).toThrow(/does not fit/)
   })
 
   it('round-trips the hasPhase flag', () => {

@@ -43,6 +43,12 @@ export interface DecodedHeader {
 
 /** Append `width` bits of `value` (MSB-first) to `bits`. */
 function pushBits(bits: number[], value: number, width: number): void {
+  // Guard against silent truncation: a value that doesn't fit the field is a bug (it would
+  // otherwise drop high bits and still pass CRC, as fftSize 2048 did). Use 2 ** width rather
+  // than 1 << width, which overflows for the 32-bit magic / sampleCount fields.
+  if (value < 0 || value >= 2 ** width) {
+    throw new Error(`header value ${value} does not fit in ${width} bits`)
+  }
   for (let i = width - 1; i >= 0; i--) {
     bits.push((value >>> i) & 1)
   }
@@ -65,7 +71,9 @@ export function packHeader(h: WavegramHeader): Uint8Array {
   pushBits(bits, h.precision, 1) // reserved bit 0
   pushBits(bits, h.hasPhase ? 1 : 0, 1) // reserved bit 1: phase-seed flag
   pushBits(bits, h.sampleRate, 24)
-  pushBits(bits, h.fftSize, 11)
+  // v3+ stores fftSize as a base-2 exponent (1024 -> 10) so 2048+ fit the 11-bit field;
+  // v1/v2 stored the raw value. hopSize is always raw (<= 1024 for every supported size).
+  pushBits(bits, h.version >= 3 ? Math.round(Math.log2(h.fftSize)) : h.fftSize, 11)
   pushBits(bits, h.hopSize, 11)
   pushBits(bits, h.sampleCount >>> 0, 32)
   pushBits(bits, h.channels, 8)
@@ -89,15 +97,18 @@ export function unpackHeader(bits: Uint8Array): DecodedHeader {
     return { magicValid, crcValid, header: null }
   }
 
+  const version = readBits(bits, OFF.version, 4)
+  const fftField = readBits(bits, OFF.fftSize, 11)
   return {
     magicValid,
     crcValid,
     header: {
-      version: readBits(bits, OFF.version, 4),
+      version,
       precision: readBits(bits, OFF.precision, 1) as Precision,
       hasPhase: readBits(bits, OFF.hasPhase, 1) === 1,
       sampleRate: readBits(bits, OFF.sampleRate, 24),
-      fftSize: readBits(bits, OFF.fftSize, 11),
+      // v3+ stores fftSize as a base-2 exponent; v1/v2 stored the raw value.
+      fftSize: version >= 3 ? 1 << fftField : fftField,
       hopSize: readBits(bits, OFF.hopSize, 11),
       sampleCount: readBits(bits, OFF.sampleCount, 32),
       channels: readBits(bits, OFF.channels, 8),

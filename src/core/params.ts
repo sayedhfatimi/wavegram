@@ -9,8 +9,8 @@ export interface WavegramHeader {
   precision: Precision // reserved bit 0
   hasPhase: boolean // reserved bit 1: B channel holds quantized phase (16-bit only)
   sampleRate: number // 24-bit, e.g. 16000
-  fftSize: number // 10-bit FFT window size, e.g. 1024
-  hopSize: number // 10-bit hop size, e.g. 512
+  fftSize: number // 11-bit field; v3+ stores log2(fftSize), e.g. 1024 -> 10. (v<=2: raw value)
+  hopSize: number // 11-bit raw hop size (max 2047), e.g. 512
   sampleCount: number // 32-bit original sample count (for precise trim)
   channels: number // 8-bit, 1 = mono
 }
@@ -18,7 +18,9 @@ export interface WavegramHeader {
 export const MAGIC = 0x41554456 // "AUDV"
 // v2 adds the optional phase-seed flag (carried in the previously-spare reserved bit).
 // v1 images decode unchanged: their spare bit is 0, so hasPhase reads false.
-export const SCHEMA_VERSION = 2
+// v3 stores fftSize as a base-2 exponent so sizes >= 2048 fit the 11-bit field (raw 2048
+// overflowed to 0). v1/v2 images still decode: their fftSize field is read as a raw value.
+export const SCHEMA_VERSION = 3
 
 export const DEFAULTS = {
   sampleRate: 16000,

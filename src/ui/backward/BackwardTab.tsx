@@ -100,24 +100,32 @@ export function BackwardTab() {
       mode === 'custom'
         ? { iterations: customIters, momentum: 0 }
         : GRIFFIN_LIM_PRESETS[mode]
-    const magnitude = extractMagnitude(
-      image.rgba,
-      image.width,
-      image.height,
-      image.header,
-    )
-    const initialPhase =
-      extractPhase(image.rgba, image.width, image.height, image.header) ?? undefined
-    run({
-      magnitude,
-      fftSize: image.header.fftSize,
-      hopSize: image.header.hopSize,
-      iterations: settings.iterations,
-      momentum: settings.momentum,
-      sampleCount: image.header.sampleCount,
-      sampleRate: image.header.sampleRate,
-      initialPhase,
-    })
+    try {
+      const magnitude = extractMagnitude(
+        image.rgba,
+        image.width,
+        image.height,
+        image.header,
+      )
+      const initialPhase =
+        extractPhase(image.rgba, image.width, image.height, image.header) ?? undefined
+      run({
+        magnitude,
+        fftSize: image.header.fftSize,
+        hopSize: image.header.hopSize,
+        iterations: settings.iterations,
+        momentum: settings.momentum,
+        sampleCount: image.header.sampleCount,
+        sampleRate: image.header.sampleRate,
+        initialPhase,
+      })
+    } catch (e) {
+      // Surface extraction failures (e.g. a header inconsistent with the image) instead of
+      // letting them throw uncaught and leave the button a silent no-op.
+      const msg = e instanceof Error ? e.message : String(e)
+      toast.error(`Reconstruction failed: ${msg}`)
+      setLoadError(msg)
+    }
   }, [image, mode, customIters, run])
 
   const outName = useMemo(
