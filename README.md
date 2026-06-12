@@ -11,15 +11,20 @@ It's built for the voice-message use case (Opus/OGG voice notes, 16 kHz mono), b
 on any audio file up to 60 seconds.
 
 ```
-┌──────────────────────────────────────────────┐
-│  Rows 0–15    Metadata header                 │  16px, 8×8 B&W squares
-│               magic · version · params · CRC  │
-├──────────────────────────────────────────────┤
-│  Rows 16+     Spectrogram                      │
-│               X = time  ➔                      │
-│               Y = frequency (low at bottom) ↑  │
-│               brightness/colour = magnitude    │
-└──────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────┐
+│                                                       │
+│ Rows 0-15    Metadata header                          │
+│              magic · version · params · CRC           │
+│              16 px tall: two rows of 8x8 B&W squares  │
+│                                                       │
+├─ Rows 16+ ────────────────────────────────────────────┤
+│                                                       │
+│ Spectrogram                                           │
+│              X = time         (left -> right)         │
+│              Y = frequency    (low at the bottom)     │
+│              brightness / colour = magnitude          │
+│                                                       │
+└───────────────────────────────────────────────────────┘
 ```
 
 ## How it works
@@ -77,18 +82,22 @@ bun install
 bun run dev          # http://localhost:5173
 ```
 
-1. **Audio ➔ Image**: pick an audio file, optionally adjust FFT size / precision, click
-   *Generate Wavegram*, download the PNG.
+1. **Audio ➔ Image**: pick an audio file **or record one in the browser**, optionally adjust
+   FFT size / precision, click *Generate Wavegram*, download the PNG.
 2. **Image ➔ Audio**: load that PNG, confirm the Magic ✓ / CRC ✓ badges, choose a Griffin-Lim
    quality preset (Fast 32 / Default 50 / Quality 100), reconstruct, download the WAV.
 
-### Loading a Wavegram on mobile
+### On mobile
 
-The Image ➔ Audio drop zone is a tap target: on a phone it opens your **photo library / Files**,
-so a Wavegram you received and saved is one tap away. On desktop you can also **drag-and-drop**
-or **paste** a PNG straight onto it. However it arrives, the PNG must be the *original,
-unmodified* file — a screenshot, a re-saved copy, or a **photo of a spectrogram** loses the
-exact pixel values and fails the CRC check (see Scope below).
+Both pickers are large tap targets that open your **photo library / Files** on a phone, and on
+desktop also accept **drag-and-drop** or **paste**.
+
+- **Audio ➔ Image**: pick an existing file, or tap **Record audio** to capture a voice note
+  in-browser — handy on iOS, where the native file picker has no built-in recorder. Recording
+  needs a secure context (HTTPS, or `localhost` in dev) and microphone permission.
+- **Image ➔ Audio**: a Wavegram you received and saved is one tap away. However it arrives, the
+  PNG must be the *original, unmodified* file — a screenshot, a re-saved copy, or a **photo of a
+  spectrogram** loses the exact pixel values and fails the CRC check (see Scope below).
 
 ## Scripts
 
