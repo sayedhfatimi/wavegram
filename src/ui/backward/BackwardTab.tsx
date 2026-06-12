@@ -24,8 +24,8 @@ import {
   type WavegramHeader,
 } from '@/core/params'
 import { AudioPlayer } from '@/ui/AudioPlayer'
-import { ImageDropzone } from '@/ui/backward/ImageDropzone'
 import { downloadBlob, imageDataToRegion } from '@/ui/lib/browser'
+import { FileDropzone } from '@/ui/lib/FileDropzone'
 import { useReconstruct } from '@/ui/lib/useReconstruct'
 
 interface LoadedImage {
@@ -146,7 +146,13 @@ export function BackwardTab() {
           <CardTitle>1. Choose a Wavegram PNG</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <ImageDropzone key={pickerKey} onFile={onFile} />
+          <FileDropzone
+            key={pickerKey}
+            onFile={onFile}
+            accept="image/*"
+            title="Choose a Wavegram PNG"
+            hint="or drag & drop / paste — on mobile, pick from Photos or Files"
+          />
           {loadError && (
             <Alert variant="destructive">
               <AlertTitle>Could not read image</AlertTitle>

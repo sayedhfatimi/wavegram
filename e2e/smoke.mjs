@@ -57,9 +57,17 @@ await page.goto(URL, { waitUntil: 'networkidle' })
 if (!(await page.getByRole('heading', { name: 'Wavegram' }).isVisible()))
   fail('app did not render')
 
+// The in-app recorder renders on the Forward tab wherever MediaRecorder exists (secure context).
+if (await page.getByRole('button', { name: 'Record audio' }).isVisible())
+  console.log('OK: Record button renders on the Forward tab')
+else
+  console.log(
+    'WARN: Record button not visible (MediaRecorder unavailable in this runner)',
+  )
+
 // --- Forward tab: upload synthetic WAV, generate PNG ---
 const wavBytes = Buffer.from(makeWavDataUrl().split(',')[1], 'base64')
-await page.locator('input[type="file"][accept="audio/*"]').setInputFiles({
+await page.locator('input[type="file"][accept*="audio"]').setInputFiles({
   name: 'tone.wav',
   mimeType: 'audio/wav',
   buffer: wavBytes,
@@ -88,7 +96,7 @@ void dlForward
 
 // --- Backward tab: feed the PNG back in, reconstruct ---
 await page.getByRole('tab', { name: 'Image ➔ Audio' }).click()
-await page.locator('input[type="file"][accept="image/png"]').setInputFiles(pngPath)
+await page.locator('input[type="file"][accept*="image"]').setInputFiles(pngPath)
 
 await page.getByText('Magic ✓').waitFor({ timeout: 5000 })
 await page.getByText('CRC-16 ✓').waitFor({ timeout: 5000 })

@@ -113,6 +113,18 @@ export function capSamples(
   return { samples: samples.slice(0, maxSamples), capped: true }
 }
 
+/**
+ * Friendly message for an audio decode failure — typically an unsupported or corrupt format
+ * (`decodeAudioData` rejects on anything the browser can't decode). The original error is kept
+ * as the thrown error's `cause`.
+ */
+export function audioDecodeErrorMessage(_err: unknown): string {
+  return (
+    'Could not decode this audio file — your browser may not support its format. ' +
+    'Try MP3 or WAV, or use the Record button.'
+  )
+}
+
 export interface DecodedAudio {
   samples: Float32Array // mono, normalized, at targetRate, capped
   sampleRate: number // targetRate
@@ -132,7 +144,12 @@ export async function decodeAudioFile(
     (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
   const ctx = new AudioCtx()
   try {
-    const buffer = await ctx.decodeAudioData(await file.arrayBuffer())
+    let buffer: AudioBuffer
+    try {
+      buffer = await ctx.decodeAudioData(await file.arrayBuffer())
+    } catch (e) {
+      throw new Error(audioDecodeErrorMessage(e), { cause: e })
+    }
     const channels: Float32Array[] = []
     for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
       channels.push(buffer.getChannelData(ch))

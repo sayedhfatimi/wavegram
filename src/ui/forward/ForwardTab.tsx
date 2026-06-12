@@ -21,7 +21,9 @@ import { imageDataToPngBlob } from '@/core/image/png'
 import { forwardLogScale } from '@/core/log'
 import { DEFAULTS, type Precision } from '@/core/params'
 import { AudioPlayer } from '@/ui/AudioPlayer'
+import { RecordButton } from '@/ui/forward/RecordButton'
 import { downloadBlob, regionToImageData } from '@/ui/lib/browser'
+import { FileDropzone } from '@/ui/lib/FileDropzone'
 import { magnitudeToFalseColorRegion } from '@/ui/lib/spectrogramView'
 
 const FFT_OPTIONS = [256, 512, 1024, 2048]
@@ -50,7 +52,8 @@ export function ForwardTab() {
   const [encoding, setEncoding] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const inputRef = useRef<HTMLInputElement | null>(null)
+  // Bumping this key remounts the dropzone, clearing its file input on reset.
+  const [pickerKey, setPickerKey] = useState(0)
 
   const hopSize = fftSize / 2
 
@@ -128,7 +131,7 @@ export function ForwardTab() {
     setError(null)
     setDecoding(false)
     setEncoding(false)
-    if (inputRef.current) inputRef.current.value = ''
+    setPickerKey((k) => k + 1)
   }, [])
 
   const onDownload = useCallback(() => {
@@ -144,13 +147,15 @@ export function ForwardTab() {
           <CardTitle>1. Choose an audio file</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <input
-            ref={inputRef}
-            type="file"
-            accept="audio/*"
-            onChange={(e) => onFile(e.target.files?.[0])}
-            className="block w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-4 file:py-2 file:text-primary-foreground hover:file:opacity-90"
+          <FileDropzone
+            key={pickerKey}
+            onFile={onFile}
+            accept="audio/*,.m4a,.aac,.mp3,.wav,.ogg,.flac"
+            title="Choose an audio file"
+            hint="or drag & drop — or record below"
+            disabled={decoding}
           />
+          <RecordButton onFile={onFile} disabled={decoding || encoding} />
           {decoding && (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" />

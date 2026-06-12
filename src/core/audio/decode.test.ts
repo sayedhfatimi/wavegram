@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  audioDecodeErrorMessage,
   capSamples,
   mixToMono,
   peakNormalize,
@@ -130,5 +131,14 @@ describe('capSamples', () => {
     const { samples, capped } = capSamples(s, 10, 5)
     expect(samples.length).toBe(30)
     expect(capped).toBe(false)
+  })
+})
+
+describe('audioDecodeErrorMessage', () => {
+  it('returns a friendly, actionable message for any decode failure', () => {
+    const msg = audioDecodeErrorMessage(new Error('EncodingError'))
+    expect(msg).toMatch(/could not decode/i)
+    expect(msg).toMatch(/MP3 or WAV/i)
+    expect(msg).toMatch(/record/i)
   })
 })
