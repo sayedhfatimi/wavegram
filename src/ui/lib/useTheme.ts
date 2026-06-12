@@ -11,7 +11,8 @@ const STORAGE_KEY = 'wavegram-theme'
 function getInitialTheme(): Theme {
   const stored = localStorage.getItem(STORAGE_KEY)
   if (stored === 'light' || stored === 'dark') return stored
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  // Dark is the default; an explicit choice (persisted) is the only thing that overrides it.
+  return 'dark'
 }
 
 function applyTheme(theme: Theme): void {

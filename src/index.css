@@ -3,47 +3,61 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Trial theme (HSL). Values wrapped in hsl() so they resolve as colours under Tailwind v4's
+   `@theme inline` mapping (which uses var(--token) directly, not hsl(var(--token))). */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --radius: 0.5rem;
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(265 15% 8%);
+  --card: hsl(265 15% 99%);
+  --card-foreground: hsl(265 15% 8%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(265 15% 8%);
+  --primary: hsl(265 89% 55%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(265 30% 96%);
+  --secondary-foreground: hsl(265 15% 20%);
+  --muted: hsl(265 20% 96%);
+  --muted-foreground: hsl(265 8% 52%);
+  --accent: hsl(193 100% 38%);
+  --accent-foreground: hsl(0 0% 100%);
+  --destructive: hsl(0 84% 60%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(265 20% 90%);
+  --input: hsl(265 20% 90%);
+  --ring: hsl(265 89% 55%);
+  --chart-1: hsl(265 89% 55%);
+  --chart-2: hsl(193 100% 38%);
+  --chart-3: hsl(325 87% 55%);
+  --chart-4: hsl(230 80% 60%);
+  --chart-5: hsl(45 80% 55%);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --background: hsl(265 25% 4%);
+  --foreground: hsl(265 15% 96%);
+  --card: hsl(265 25% 8%);
+  --card-foreground: hsl(265 15% 96%);
+  --popover: hsl(265 25% 8%);
+  --popover-foreground: hsl(265 15% 96%);
+  --primary: hsl(265 89% 65%);
+  --primary-foreground: hsl(265 25% 4%);
+  --secondary: hsl(265 25% 15%);
+  --secondary-foreground: hsl(265 15% 85%);
+  --muted: hsl(265 25% 15%);
+  --muted-foreground: hsl(265 10% 58%);
+  --accent: hsl(193 100% 50%);
+  --accent-foreground: hsl(265 25% 4%);
+  --destructive: hsl(0 84% 60%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(265 25% 20%);
+  --input: hsl(265 25% 20%);
+  --ring: hsl(193 100% 50%);
+  --chart-1: hsl(265 89% 65%);
+  --chart-2: hsl(193 100% 50%);
+  --chart-3: hsl(325 87% 60%);
+  --chart-4: hsl(230 80% 65%);
+  --chart-5: hsl(45 80% 60%);
 }
 
 @theme inline {

@@ -9,6 +9,16 @@
     <meta name="theme-color" content="#16c8d8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Wavegram</title>
+    <script>
+      // Apply the theme before first paint to avoid a flash. Dark is the default; a persisted
+      // choice overrides it. Mirrors getInitialTheme in src/ui/lib/useTheme.ts.
+      try {
+        var t = localStorage.getItem('wavegram-theme')
+        document.documentElement.classList.toggle('dark', t !== 'light')
+      } catch (e) {
+        document.documentElement.classList.add('dark')
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
